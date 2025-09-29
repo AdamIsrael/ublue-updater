@@ -1,18 +1,30 @@
 use duct::cmd;
 use gtk::CssProvider;
-use gtk::{Application, ApplicationWindow, Button, TextBuffer, TextView, glib};
+use gtk::{Application, ApplicationWindow, Button, ProgressBar, TextBuffer, TextView, glib};
 use gtk::{Expander, prelude::*};
+
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
 
 use std::io::BufRead;
 use std::io::BufReader;
-// use std::io::Read;
-// use std::io::prelude::*;
-// use std::process::Command;
-// use std::process::Stdio;
 use std::str;
-// use vte4::prelude::*;
 
 const APP_ID: &str = "com.github.AdamIsrael.Updater";
+
+// {"level":"INFO","msg":"Updating","title":"System","description":"rpm-ostree",
+// "progress":0,"total":5,"step_progress":0,"overall":17}
+#[derive(Serialize, Deserialize)]
+struct Progress {
+    level: String,
+    msg: String,
+    title: String,
+    description: String,
+    progress: u32,
+    total: u32,
+    step_progress: u32,
+    overall: u32,
+}
 
 fn main() -> glib::ExitCode {
     // Create a new application
@@ -35,21 +47,16 @@ fn build_ui(app: &Application) {
         .margin_end(12)
         .build();
 
-    // Create PTY for the terminal
-    // gio::Initable::new();
-    // let pty = vte4::Pty::builder().build();
-    // gio::Initable::new(Some(&pty)).unwrap();
-    //
-    // Create terminal widget
-    // let terminal = vte4::Terminal::builder()
-    //     .input_enabled(true)
-    //     .scroll_on_output(true)
-    //     // .pty(&pty)
-    //     .build();
+    // Create a progress bar
+    let progress_bar = ProgressBar::builder()
+        .margin_top(12)
+        .margin_bottom(6)
+        .margin_start(12)
+        .margin_end(12)
+        .show_text(true)
+        .build();
 
-    // // Clone terminal for button callback
-    // let terminal_update = terminal.clone();
-
+    // Create a terminal
     let terminal = TextView::builder()
         .editable(false)
         .cursor_visible(false)
@@ -80,13 +87,14 @@ fn build_ui(app: &Application) {
     // terminal.style_context().add_provider(&provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     let buffer = terminal.buffer();
-
+    let pbar = progress_bar.clone();
     // terminal.set_editable(false);
     // Connect update button to run a system update command
     update_button.connect_clicked(move |_| {
         execute_command_async(
+            &pbar,
             &buffer,
-            "ujust update",
+            "uupd --json",
             // "echo 'Starting system update...' && brew update && brew upgrade && echo 'Update completed!'",
         );
     });
@@ -101,6 +109,7 @@ fn build_ui(app: &Application) {
     // Create main container
     let main_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
     main_box.append(&update_button);
+    main_box.append(&progress_bar);
     main_box.append(&expander);
 
     // Create window
@@ -116,11 +125,10 @@ fn build_ui(app: &Application) {
     window.present();
 }
 
-fn execute_command_async(buffer: &TextBuffer, command: &str) {
-    // fn execute_command_async(terminal: &vte4::Terminal, command: &str) {
-    // let terminal_clone = terminal.clone();
+fn execute_command_async(progress_bar: &ProgressBar, buffer: &TextBuffer, command: &str) {
     let command_string = command.to_string();
     let tbuffer = buffer.clone();
+    let pbar = progress_bar.clone();
 
     // Execute command in a separate thread to avoid blocking the UI
     glib::spawn_future_local(async move {
@@ -129,9 +137,6 @@ fn execute_command_async(buffer: &TextBuffer, command: &str) {
         tbuffer.insert_at_cursor(&cmd_display);
         tbuffer.insert_at_cursor("\n");
 
-        // terminal_clone.feed(cmd_display.as_bytes());
-        // terminal_clone.feed(b"\n");
-
         // duct does the heavy lifting of executing the command and handling its output
         // there's probably a way to do it with the standard process::Command but this was faster
         let big_cmd = cmd!("bash", "-c", command_string); // , "1>&2"
@@ -139,13 +144,18 @@ fn execute_command_async(buffer: &TextBuffer, command: &str) {
             let lines = BufReader::new(reader).lines();
             for line in lines {
                 if let Ok(line) = line {
+                    // parse json
+                    // TODO: handle parsing errors
+                    let p: Progress = serde_json::from_str(&line).unwrap();
+
+                    // Update the progress bar
+                    pbar.set_text(Some(&format!("{} {} ({})", p.msg, p.title, p.description)));
+                    // need to figure out if/when to use fraction vs. pulse_step
+                    pbar.set_fraction(p.overall as f64 / 100.0);
+
                     println!("Got line: {}", line); // debug
                     tbuffer.insert_at_cursor(&line);
                     tbuffer.insert_at_cursor("\n");
-
-                    // terminal_clone.feed(line.as_bytes());
-
-                    // terminal_clone.feed(b"\n");
                 }
             }
         }
