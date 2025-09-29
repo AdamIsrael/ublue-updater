@@ -1,0 +1,25 @@
+[
+    {
+        "label": "DevContainer: Build",
+        "command": "devcontainer build --workspace-folder ${ZED_WORKTREE_ROOT}"
+    },
+    {
+        "label": "DevContainer: Up",
+        "command": "devcontainer up --workspace-folder ${ZED_WORKTREE_ROOT}"
+    },
+    {
+        "label": "DevContainer: Down",
+        "command": "devcontainer exec --workspace-folder ${ZED_WORKTREE_ROOT} hostname | xargs -r docker rm -f"
+    },
+    {
+        "label": "DevContainer: Exec",
+        "command": "devcontainer exec --workspace-folder ${ZED_WORKTREE_ROOT} --"
+    },
+    {
+        "label": "DevContainer: Run User Commands",
+        "command": "devcontainer run-user-commands --workspace-folder ${ZED_WORKTREE_ROOT}",
+        "use_new_terminal": true,
+        "allow_concurrent_runs": false,
+        "reveal": "always"
+    }
+]

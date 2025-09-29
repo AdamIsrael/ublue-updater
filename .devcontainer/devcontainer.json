@@ -1,0 +1,24 @@
+{
+    "name": "Rust Development",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "."
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["rust-lang.rust-analyzer"]
+        }
+    },
+    "containerUser": "vscode",
+    "remoteUser": "vscode",
+    "updateRemoteUserUID": true, // Automatically updates UID/GID in container
+
+    "workspaceMount": "",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    // "workspaceFolder": "/workspaces/hello-world-gtk",
+    "runArgs": [
+        // other args
+        "--volume=${localWorkspaceFolder}:/workspaces/${localWorkspaceFolderBasename}:Z"
+    ],
+    "postCreateCommand": "cargo build"
+}
