@@ -17,7 +17,7 @@ jobs:
             - name: Install gtk libraries
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y libgtk-4-dev build-essential libvte-2.91-gtk4-dev libadwaita-1-dev
+                  sudo apt-get install -y libgtk-4-dev libglib2.0-dev build-essential libadwaita-1-dev
             - uses: actions-rs/toolchain@v1
               with:
                   profile: minimal
