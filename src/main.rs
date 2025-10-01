@@ -1,7 +1,7 @@
-use duct::cmd;
-use gtk::CssProvider;
-use gtk::{Application, ApplicationWindow, Button, ProgressBar, TextBuffer, TextView, glib};
-use gtk::{Expander, prelude::*};
+mod ui;
+
+use gtk::Application;
+use gtk::prelude::*;
 
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +16,7 @@ const APP_ID: &str = "com.github.AdamIsrael.Updater";
 
 // {"level":"INFO","msg":"Updating","title":"System","description":"rpm-ostree",
 // "progress":0,"total":5,"step_progress":0,"overall":17}
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct Progress {
     level: String,
     msg: String,
@@ -40,151 +40,80 @@ struct Progress {
     overall: u32,
 }
 
-struct UiModel {
-    progress_bar: ProgressBar,
-    output_buffer: TextBuffer,
-}
-
 fn main() -> glib::ExitCode {
     // Create a new application
     let application = Application::builder().application_id(APP_ID).build();
 
-    // Connect to "activate" signal of `app`
-    // app.connect_activate(build_ui);
-
     application.connect_activate(|app| {
-        let ui_model = build_ui(app);
-        // setup(ui_model);
+        build_ui(app);
     });
 
     // Run the application
     application.run()
 }
 
-fn build_ui(app: &Application) -> UiModel {
-    let update_button = Button::builder()
-        .label("Run System Update")
-        .margin_top(12)
-        .margin_bottom(6)
-        .margin_start(12)
-        .margin_end(12)
-        .build();
+fn build_ui(app: &Application) {
+    let update_button = ui::get_update_button();
+    let progress_bar = ui::get_progress_bar();
+    let terminal = ui::get_terminal_view();
+    let expander = ui::get_expander(&terminal);
 
-    // Create a progress bar
-    let progress_bar = ProgressBar::builder()
-        .margin_top(12)
-        .margin_bottom(6)
-        .margin_start(12)
-        .margin_end(12)
-        .show_text(true)
-        .build();
-
-    // Create a terminal view
-    let terminal = TextView::builder()
-        .editable(false)
-        .cursor_visible(false)
-        .monospace(true)
-        .build();
-
-    let css_data = "
-            textview {
-                background-color: black;
-                color: white;
-            }
-            textview text {
-                font-family: 'Monospace';
-                font-size: 14px;
-            }
-        ";
-
-    terminal.add_css_class("textview");
-
-    let css_provider = CssProvider::new();
-    css_provider.load_from_string(css_data);
-
-    gtk::style_context_add_provider_for_display(
-        &gtk::gdk::Display::default().expect("Could not get display"),
-        &css_provider,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    );
-
-    // let buffer = terminal.buffer();
+    // Create cloned references because the closure will move them
     let pbar = progress_bar.clone();
-    let tm = terminal.clone();
+    let term = terminal.clone();
 
     // Connect update button to run a system update command
     update_button.connect_clicked(move |_| {
-        let ui_model = UiModel {
+        // Get the UI elements that the secondary thread needs to access
+        let ui_model = ui::UiModel {
             progress_bar: pbar.clone(),
-            output_buffer: tm.buffer(),
+            output_buffer: term.buffer(),
         };
-        // execute_command_async(&pbar, &buffer, "uupd --json");
-        setup(ui_model);
+        execute_command_async(ui_model);
     });
 
-    // Create expander for terminal
-    let expander = Expander::builder()
-        .label("Terminal Output")
-        .expanded(true) // set to true for debugging
-        .build();
-    expander.set_child(Some(&terminal));
-
-    // Create main container
-    let main_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
-    main_box.append(&update_button);
-    main_box.append(&progress_bar);
-    main_box.append(&expander);
-
-    // Create window
-    let window = ApplicationWindow::builder()
-        .application(app)
-        .title("UBlue Updater")
-        .default_width(800)
-        .default_height(600)
-        .child(&main_box)
-        .build();
+    let main_box = ui::get_main_container(&update_button, &progress_bar, &expander);
+    let window = ui::get_window(app, "UBlue Updater", &main_box);
 
     // Present window
     window.present();
-
-    return UiModel {
-        progress_bar: progress_bar.clone(),
-        output_buffer: terminal.buffer(),
-    };
 }
 
-fn setup(ui: UiModel) {
+fn execute_command_async(ui: ui::UiModel) {
     let (tx, rx) = mpsc::channel();
     GLOBAL.with(|global| {
         *global.borrow_mut() = Some((ui, rx));
     });
-    let child_process = Command::new("sh")
-        // .args(&["-c", "while true; do date; sleep 2; done"])
-        .args(&["-c", "uupd --json"])
+
+    // TODO: Read from UI checkbox to see if we should add the `--apply` flag
+    //
+    if let Ok(child_process) = Command::new("sh")
+        .args(["-c", "uupd --json"])
         .stdout(Stdio::piped())
         .spawn()
-        .unwrap();
+    {
+        let incoming = child_process.stdout.unwrap();
 
-    let incoming = child_process.stdout.unwrap();
-
-    std::thread::spawn(move || {
-        let _ = &BufReader::new(incoming).lines().for_each(|line| {
-            let data = line.unwrap();
-            // send data through channel
-            tx.send(data).unwrap();
-            // then tell the UI thread to read from that channel
-            glib::source::idle_add(|| {
-                check_for_new_message();
-                return glib::ControlFlow::Break;
+        std::thread::spawn(move || {
+            let _ = &BufReader::new(incoming).lines().for_each(|line| {
+                let data = line.unwrap();
+                // send data through channel
+                tx.send(data).unwrap();
+                // then tell the UI thread to read from that channel
+                glib::source::idle_add(|| {
+                    check_for_new_message();
+                    glib::ControlFlow::Break
+                });
             });
         });
-    });
+    }
 }
 
-// global variable to store  the ui and an input channel
+// global variable to store the ui and an input channel
 // on the main thread only
 thread_local!(
-    static GLOBAL: RefCell<Option<(UiModel, mpsc::Receiver<String>)>> = RefCell::new(None);
+    static GLOBAL: RefCell<Option<(ui::UiModel, mpsc::Receiver<String>)>> =
+        const { RefCell::new(None) };
 );
 
 // function to check if a new message has been passed through the
@@ -193,15 +122,16 @@ fn check_for_new_message() {
     GLOBAL.with(|global| {
         if let Some((ui, rx)) = &*global.borrow() {
             let received: String = rx.recv().unwrap();
-            println!("Received message: {}", received);
+            // println!("Received message: {}", received);
+
+            // Parse the received json into a Progress struct
             let p: Progress = serde_json::from_str(&received).unwrap();
-            // Update the progress bar
+
+            // Update the UI
             ui.progress_bar
                 .set_text(Some(&format!("{} {} ({})", p.msg, p.title, p.description)));
-            // need to figure out if/when to use fraction vs. pulse_step
             ui.progress_bar.set_fraction(p.overall as f64 / 100.0);
 
-            // ui.output_buffer.set_text(&received);
             ui.output_buffer.insert_at_cursor(&received);
             ui.output_buffer.insert_at_cursor("\n");
         }
