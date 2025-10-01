@@ -18,10 +18,11 @@ jobs:
             - name: Install GTK4 dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y libgtk-4-dev librust-gobject-sys-dev
+                  sudo apt-get install -y libgtk-4-dev
 
             - name: Check
-              run: cargo check
+              run: |
+                  PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig cargo check
 
             # - name: Run tests
             #   run: cargo test --verbose
