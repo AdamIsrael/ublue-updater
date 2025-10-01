@@ -14,12 +14,23 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
+            - name: Build Docker image
+              run: docker build -t ublue-updater .
 
-            - name: Install GTK4 dependencies
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y libgtk-4-dev
-                  cargo check
+            - name: Run check
+              run: docker run ublue-updater cargo check
+
+            - name: Run Test
+              run: docker run ublue-updater cargo test
+
+            - name: Run Clippy
+              run: docker run ublue-updater cargo clippy
+
+            # - name: Install GTK4 dependencies
+            #   run: |
+            #       sudo apt-get update
+            #       sudo apt-get install -y libgtk-4-dev
+            #       cargo check
 
             # - name: Set PKG_CONFIG_PATH (if needed)
             #   run: |
