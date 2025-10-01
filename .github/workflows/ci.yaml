@@ -17,7 +17,7 @@ jobs:
             - name: Install gtk libraries
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y libgtk-4-dev libglib2.0-dev gir1.2-glib-2.0-dev build-essential libadwaita-1-dev
+                  sudo apt-get install -y libgtk-4-dev libglib2.0-dev gir1.2-glib-2.0-dev libgio-2.0-dev build-essential libadwaita-1-dev
             - uses: actions-rs/toolchain@v1
               with:
                   profile: minimal
@@ -34,7 +34,7 @@ jobs:
             - name: Install gtk libraries
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y libgtk-4-dev libglib2.0-dev gir1.2-glib-2.0-dev build-essential libadwaita-1-dev
+                  sudo apt-get install -y libgtk-4-dev libglib2.0-dev gir1.2-glib-2.0-dev libgio-2.0-dev build-essential libadwaita-1-dev
             - uses: actions/checkout@v2
             - uses: actions-rs/toolchain@v1
               with:
@@ -68,7 +68,7 @@ jobs:
             - name: Install gtk libraries
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y libgtk-4-dev libglib2.0-dev gir1.2-glib-2.0-dev build-essential libadwaita-1-dev
+                  sudo apt-get install -y libgtk-4-dev libglib2.0-dev gir1.2-glib-2.0-dev libgio-2.0-dev build-essential libadwaita-1-dev
             - uses: actions/checkout@v2
             - uses: actions-rs/toolchain@v1
               with:
