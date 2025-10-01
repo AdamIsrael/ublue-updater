@@ -15,7 +15,7 @@ jobs:
         steps:
             - uses: actions/checkout@v2
             - name: Build Docker image
-              run: docker build -t ublue-updater .
+              run: docker build -t ublue-updater ./github/workflows/Dockerfile
 
             - name: Run check
               run: docker run ublue-updater cargo check
