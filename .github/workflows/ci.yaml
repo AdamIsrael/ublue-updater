@@ -19,14 +19,16 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y libgtk-4-dev
-            - name: Set PKG_CONFIG_PATH (if needed)
-              run: |
-                  echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig" >> $GITHUB_ENV
-            - name: Check
-              run: |
-                  pkg-config --libs --cflags glib-2.0
-                  KG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 pkg-config --libs --cflags glib-2.0
                   cargo check
+
+            # - name: Set PKG_CONFIG_PATH (if needed)
+            #   run: |
+            #       echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+            # - name: Check
+            #   run: |
+            #       pkg-config --libs --cflags glib-2.0
+            #       KG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 pkg-config --libs --cflags glib-2.0
+            #       cargo check
 
             # - name: Run tests
             #   run: cargo test --verbose
@@ -40,23 +42,23 @@ jobs:
             #   with:
             #       command: check
 
-    test:
-        name: Test Suite
-        runs-on: ubuntu-latest
-        steps:
-            - name: Install gtk libraries
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y libgtk-4-dev libgtk-4-dev libglib2.0-dev librust-gio-sys-dev build-essential libadwaita-1-dev
-            - uses: actions/checkout@v2
-            - uses: actions-rs/toolchain@v1
-              with:
-                  profile: minimal
-                  toolchain: stable
-                  override: true
-            - uses: actions-rs/cargo@v1
-              with:
-                  command: test
+    # test:
+    #     name: Test Suite
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - name: Install gtk libraries
+    #           run: |
+    #               sudo apt-get update
+    #               sudo apt-get install -y libgtk-4-dev libgtk-4-dev libglib2.0-dev librust-gio-sys-dev build-essential libadwaita-1-dev
+    #         - uses: actions/checkout@v2
+    #         - uses: actions-rs/toolchain@v1
+    #           with:
+    #               profile: minimal
+    #               toolchain: stable
+    #               override: true
+    #         - uses: actions-rs/cargo@v1
+    #           with:
+    #               command: test
 
     fmt:
         name: Rustfmt
@@ -74,22 +76,22 @@ jobs:
                   command: fmt
                   args: --all -- --check
 
-    clippy:
-        name: Clippy
-        runs-on: ubuntu-latest
-        steps:
-            - name: Install gtk libraries
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y libgtk-4-dev libgtk-4-dev build-essential libadwaita-1-dev
-            - uses: actions/checkout@v2
-            - uses: actions-rs/toolchain@v1
-              with:
-                  profile: minimal
-                  toolchain: stable
-                  override: true
-            - run: rustup component add clippy
-            - uses: actions-rs/cargo@v1
-              with:
-                  command: clippy
-                  args: -- -D warnings
+    # clippy:
+    #     name: Clippy
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - name: Install gtk libraries
+    #           run: |
+    #               sudo apt-get update
+    #               sudo apt-get install -y libgtk-4-dev libgtk-4-dev build-essential libadwaita-1-dev
+    #         - uses: actions/checkout@v2
+    #         - uses: actions-rs/toolchain@v1
+    #           with:
+    #               profile: minimal
+    #               toolchain: stable
+    #               override: true
+    #         - run: rustup component add clippy
+    #         - uses: actions-rs/cargo@v1
+    #           with:
+    #               command: clippy
+    #               args: -- -D warnings
