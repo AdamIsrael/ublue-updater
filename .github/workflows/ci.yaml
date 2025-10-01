@@ -19,11 +19,13 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y libgtk-4-dev
-
+            - name: Set PKG_CONFIG_PATH (if needed)
+              run: |
+                  echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig" >> $GITHUB_ENV
             - name: Check
               run: |
-                  ls -la /usr/lib/x86_64-linux-gnu/pkgconfig
                   pkg-config --libs --cflags glib-2.0
+                  KG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 pkg-config --libs --cflags glib-2.0
                   cargo check
 
             # - name: Run tests
