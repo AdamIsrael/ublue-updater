@@ -14,10 +14,12 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
-            - name: Install gtk libraries
+
+            - name: Install GTK4 dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y libgtk-4-dev libgtk-4-dev libglib2.0-dev libglib2.0-dev librust-glib-sys-dev librust-gio-sys-dev build-essential libadwaita-1-dev
+                  sudo apt-get install -y libgtk-4-dev
+
             - uses: actions-rs/toolchain@v1
               with:
                   profile: minimal
