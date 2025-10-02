@@ -4,6 +4,7 @@ Prototype gtk4 application to update the OS, flatpak, brew, etc, show a progress
 
 - re changelogs: @AdamIsrael it'd be just snagging/caching the release notes from github releases.
 
-## Notes
+## TODO
 
-- Implemented the initial progress bar and confirmed the UI isn't updating while the update process is running.
+- Implement the changelog display feature.
+- Port to libawaita
