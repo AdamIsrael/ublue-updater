@@ -7,4 +7,5 @@ Prototype gtk4 application to update the OS, flatpak, brew, etc, show a progress
 ## TODO
 
 - Implement the changelog display feature.
-- Port to libawaita
+- ~~Port to libawaita~~
+- ~~Use `Clamp` to limit the size of the contents. See Deja Backup for an example.~~

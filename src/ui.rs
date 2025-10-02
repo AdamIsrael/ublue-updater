@@ -93,21 +93,33 @@ pub fn get_main_container(
     expander: &Expander,
 ) -> Box {
     // Create main container
+    let parent = Box::new(gtk::Orientation::Vertical, 6);
+
+    parent.append(header_bar);
+
     let main_box = Box::new(gtk::Orientation::Vertical, 6);
-    main_box.append(header_bar);
+
     main_box.append(update_button);
     main_box.append(apply_check_button);
     main_box.append(progress_bar);
     main_box.append(expander);
-    main_box
+
+    let clamp = adw::Clamp::builder()
+        .child(&main_box)
+        .maximum_size(500)
+        .tightening_threshold(10)
+        // .unit(adw::ClampUnit::Pixels::new(10))
+        .build();
+    parent.append(&clamp);
+    parent
 }
-pub fn get_window(app: &adw::Application, title: &str, main_box: &Box) -> adw::ApplicationWindow {
+pub fn get_window(app: &adw::Application, title: &str, main_box: Box) -> adw::ApplicationWindow {
     // Create window
     adw::ApplicationWindow::builder()
         .application(app)
         .title(title)
         .default_width(800)
         .default_height(600)
-        .content(main_box)
+        .content(&main_box)
         .build()
 }

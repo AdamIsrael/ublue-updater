@@ -85,7 +85,7 @@ fn build_ui(app: &adw::Application) {
         &progress_bar,
         &expander,
     );
-    let window = ui::get_window(app, "UBlue Updater", &main_box);
+    let window = ui::get_window(app, "UBlue Updater", main_box);
 
     // Present window
     window.present();
