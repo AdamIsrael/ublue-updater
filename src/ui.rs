@@ -14,6 +14,8 @@ pub struct UiModel {
 pub fn get_apply_check_button() -> CheckButton {
     CheckButton::builder()
         .label("Reboot if there's an update to the image")
+        .margin_start(12)
+        .margin_end(12)
         .build()
 }
 pub fn get_expander(terminal: &TextView) -> Expander {
@@ -91,14 +93,12 @@ pub fn get_main_container(
     expander: &Expander,
 ) -> Box {
     // Create main container
-
     let main_box = Box::new(gtk::Orientation::Vertical, 6);
     main_box.append(header_bar);
     main_box.append(update_button);
     main_box.append(apply_check_button);
     main_box.append(progress_bar);
     main_box.append(expander);
-
     main_box
 }
 pub fn get_window(app: &adw::Application, title: &str, main_box: &Box) -> adw::ApplicationWindow {
