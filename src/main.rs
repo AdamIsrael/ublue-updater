@@ -42,7 +42,7 @@ struct Progress {
 
 fn main() -> glib::ExitCode {
     // Create a new application
-    let application = Application::builder().application_id(APP_ID).build();
+    let application = adw::Application::builder().application_id(APP_ID).build();
 
     application.connect_activate(|app| {
         build_ui(app);
@@ -52,27 +52,40 @@ fn main() -> glib::ExitCode {
     application.run()
 }
 
-fn build_ui(app: &Application) {
+fn build_ui(app: &adw::Application) {
+    let header_bar = ui::get_header_bar();
     let update_button = ui::get_update_button();
     let progress_bar = ui::get_progress_bar();
     let terminal = ui::get_terminal_view();
     let expander = ui::get_expander(&terminal);
+    let apply_check_button = ui::get_apply_check_button();
 
     // Create cloned references because the closure will move them
+    // let header = header_bar.clone();
     let pbar = progress_bar.clone();
     let term = terminal.clone();
+    let apply = apply_check_button.clone();
+    let update = update_button.clone();
 
     // Connect update button to run a system update command
     update_button.connect_clicked(move |_| {
         // Get the UI elements that the secondary thread needs to access
         let ui_model = ui::UiModel {
+            apply_check_button: apply.clone(),
+            update_button: update.clone(),
             progress_bar: pbar.clone(),
             output_buffer: term.buffer(),
         };
         execute_command_async(ui_model);
     });
 
-    let main_box = ui::get_main_container(&update_button, &progress_bar, &expander);
+    let main_box = ui::get_main_container(
+        &header_bar,
+        &update_button,
+        &apply_check_button,
+        &progress_bar,
+        &expander,
+    );
     let window = ui::get_window(app, "UBlue Updater", &main_box);
 
     // Present window
@@ -80,15 +93,22 @@ fn build_ui(app: &Application) {
 }
 
 fn execute_command_async(ui: ui::UiModel) {
+    // Read the UI before we move the ui into the global closure
+    // Read from UI checkbox to see if we should add the `--apply` flag
+    let apply = ui.apply_check_button.is_active();
+
+    // TODO: Disable the update button and checkbox while running uupd
+    ui.apply_check_button.set_sensitive(false);
+    ui.update_button.set_sensitive(false);
+
     let (tx, rx) = mpsc::channel();
     GLOBAL.with(|global| {
         *global.borrow_mut() = Some((ui, rx));
     });
 
-    // TODO: Read from UI checkbox to see if we should add the `--apply` flag
-    //
+    let cmd = format!("pkexec uupd --json{}", if apply { " --apply" } else { "" });
     if let Ok(child_process) = Command::new("sh")
-        .args(["-c", "uupd --json"])
+        .args(["-c", &cmd])
         .stdout(Stdio::piped())
         .spawn()
     {

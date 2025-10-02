@@ -1,14 +1,21 @@
 /// UI-related functions and structs
-use gtk::CssProvider;
-use gtk::{Application, ApplicationWindow, Box, Button, ProgressBar, TextBuffer, TextView};
-use gtk::{Expander, prelude::*};
+use adw::prelude::*;
+use gtk::{Box, Button, CheckButton, CssProvider, Expander, ProgressBar, TextBuffer, TextView};
 
 // This provides us a way to update the UI from another thread
+#[derive(Clone)]
 pub struct UiModel {
+    pub apply_check_button: CheckButton,
+    pub update_button: Button,
     pub progress_bar: ProgressBar,
     pub output_buffer: TextBuffer,
 }
 
+pub fn get_apply_check_button() -> CheckButton {
+    CheckButton::builder()
+        .label("Reboot if there's an update to the image")
+        .build()
+}
 pub fn get_expander(terminal: &TextView) -> Expander {
     let expander = Expander::builder()
         .label("Terminal Output")
@@ -64,29 +71,43 @@ pub fn get_update_button() -> Button {
         .label("Run System Update")
         .margin_top(12)
         .margin_bottom(6)
+        .margin_start(12)
+        .margin_end(12)
         .build()
 }
 
+pub fn get_header_bar() -> adw::HeaderBar {
+    let header_bar = adw::HeaderBar::new();
+    let window_title = adw::WindowTitle::builder().title("Ublue Updater").build();
+    header_bar.set_title_widget(Some(&window_title));
+    header_bar
+}
+
 pub fn get_main_container(
+    header_bar: &adw::HeaderBar,
     update_button: &Button,
+    apply_check_button: &CheckButton,
     progress_bar: &ProgressBar,
     expander: &Expander,
 ) -> Box {
     // Create main container
+
     let main_box = Box::new(gtk::Orientation::Vertical, 6);
+    main_box.append(header_bar);
     main_box.append(update_button);
+    main_box.append(apply_check_button);
     main_box.append(progress_bar);
     main_box.append(expander);
 
     main_box
 }
-pub fn get_window(app: &Application, title: &str, main_box: &Box) -> ApplicationWindow {
+pub fn get_window(app: &adw::Application, title: &str, main_box: &Box) -> adw::ApplicationWindow {
     // Create window
-    ApplicationWindow::builder()
+    adw::ApplicationWindow::builder()
         .application(app)
         .title(title)
         .default_width(800)
         .default_height(600)
-        .child(main_box)
+        .content(main_box)
         .build()
 }
