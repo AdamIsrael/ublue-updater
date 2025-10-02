@@ -1,6 +1,5 @@
 mod ui;
 
-use gtk::Application;
 use gtk::prelude::*;
 
 use serde::{Deserialize, Serialize};
