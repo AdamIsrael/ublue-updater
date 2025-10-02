@@ -13,7 +13,7 @@ pub struct UiModel {
 
 pub fn get_apply_check_button() -> CheckButton {
     CheckButton::builder()
-        .label("Reboot if there's an update to the image")
+        .label("Reboot if there's a system update")
         .margin_start(12)
         .margin_end(12)
         .build()
