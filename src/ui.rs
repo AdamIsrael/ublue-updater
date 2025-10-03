@@ -42,6 +42,7 @@ pub fn get_terminal_view() -> TextView {
         .margin_bottom(6)
         .margin_start(12)
         .margin_end(12)
+        .wrap_mode(gtk::WrapMode::Word)
         .build();
 
     let css_data = "
@@ -118,8 +119,8 @@ pub fn get_window(app: &adw::Application, title: &str, main_box: Box) -> adw::Ap
     adw::ApplicationWindow::builder()
         .application(app)
         .title(title)
-        .default_width(800)
-        .default_height(600)
+        .default_width(400)
+        .default_height(200)
         .content(&main_box)
         .build()
 }

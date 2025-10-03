@@ -75,7 +75,15 @@ fn build_ui(app: &adw::Application) {
             progress_bar: pbar.clone(),
             output_buffer: term.buffer(),
         };
+
+        // Disable the update button and checkbox while running uupd
+        // ui_model.apply_check_button.set_sensitive(false);
+        // ui_model.update_button.set_sensitive(false);
+
         execute_command_async(ui_model);
+
+        // ui_model.apply_check_button.set_sensitive(true);
+        // ui_model.update_button.set_sensitive(true);
     });
 
     let main_box = ui::get_main_container(
@@ -96,7 +104,7 @@ fn execute_command_async(ui: ui::UiModel) {
     // Read from UI checkbox to see if we should add the `--apply` flag
     let apply = ui.apply_check_button.is_active();
 
-    // TODO: Disable the update button and checkbox while running uupd
+    // Disable the update button and checkbox while running uupd
     ui.apply_check_button.set_sensitive(false);
     ui.update_button.set_sensitive(false);
 
@@ -141,7 +149,6 @@ fn check_for_new_message() {
     GLOBAL.with(|global| {
         if let Some((ui, rx)) = &*global.borrow() {
             let received: String = rx.recv().unwrap();
-            // println!("Received message: {}", received);
 
             // Parse the received json into a Progress struct
             let p: Progress = serde_json::from_str(&received).unwrap();
@@ -153,43 +160,12 @@ fn check_for_new_message() {
 
             ui.output_buffer.insert_at_cursor(&received);
             ui.output_buffer.insert_at_cursor("\n");
+
+            // If the progress is complete, re-enable the disabled UI elements
+            if p.overall == 100 {
+                ui.update_button.set_sensitive(true);
+                ui.apply_check_button.set_sensitive(true);
+            }
         }
     });
 }
-
-// fn execute_command_async(progress_bar: &ProgressBar, buffer: &TextBuffer, command: &str) {
-//     let command_string = command.to_string();
-//     let tbuffer = buffer.clone();
-//     let pbar = progress_bar.clone();
-
-//     // Execute command in a separate thread to avoid blocking the UI
-//     glib::spawn_future_local(async move {
-//         // Show the command being executed
-//         let cmd_display = format!("$ {}\n", command_string);
-//         tbuffer.insert_at_cursor(&cmd_display);
-//         tbuffer.insert_at_cursor("\n");
-
-//         // duct does the heavy lifting of executing the command and handling its output
-//         // there's probably a way to do it with the standard process::Command but this was faster
-//         let big_cmd = cmd!("bash", "-c", command_string); // , "1>&2"
-//         if let Ok(reader) = big_cmd.stderr_to_stdout().reader() {
-//             let lines = BufReader::new(reader).lines();
-//             for line in lines {
-//                 if let Ok(line) = line {
-//                     // parse json
-//                     // TODO: handle parsing errors
-//                     let p: Progress = serde_json::from_str(&line).unwrap();
-
-//                     // Update the progress bar
-//                     pbar.set_text(Some(&format!("{} {} ({})", p.msg, p.title, p.description)));
-//                     // need to figure out if/when to use fraction vs. pulse_step
-//                     pbar.set_fraction(p.overall as f64 / 100.0);
-
-//                     println!("Got line: {}", line); // debug
-//                     tbuffer.insert_at_cursor(&line);
-//                     tbuffer.insert_at_cursor("\n");
-//                 }
-//             }
-//         }
-//     });
-// }
