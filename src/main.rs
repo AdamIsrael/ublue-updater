@@ -60,7 +60,6 @@ fn build_ui(app: &adw::Application) {
     let apply_check_button = ui::get_apply_check_button();
 
     // Create cloned references because the closure will move them
-    // let header = header_bar.clone();
     let pbar = progress_bar.clone();
     let term = terminal.clone();
     let apply = apply_check_button.clone();
@@ -76,14 +75,7 @@ fn build_ui(app: &adw::Application) {
             output_buffer: term.buffer(),
         };
 
-        // Disable the update button and checkbox while running uupd
-        // ui_model.apply_check_button.set_sensitive(false);
-        // ui_model.update_button.set_sensitive(false);
-
         execute_command_async(ui_model);
-
-        // ui_model.apply_check_button.set_sensitive(true);
-        // ui_model.update_button.set_sensitive(true);
     });
 
     let main_box = ui::get_main_container(
@@ -107,6 +99,7 @@ fn execute_command_async(ui: ui::UiModel) {
     // Disable the update button and checkbox while running uupd
     ui.apply_check_button.set_sensitive(false);
     ui.update_button.set_sensitive(false);
+    ui.output_buffer.set_text("");
 
     let (tx, rx) = mpsc::channel();
     GLOBAL.with(|global| {
@@ -157,12 +150,11 @@ fn check_for_new_message() {
             ui.progress_bar
                 .set_text(Some(&format!("{} {} ({})", p.msg, p.title, p.description)));
             ui.progress_bar.set_fraction(p.overall as f64 / 100.0);
-
             ui.output_buffer.insert_at_cursor(&received);
             ui.output_buffer.insert_at_cursor("\n");
 
             // If the progress is complete, re-enable the disabled UI elements
-            if p.overall == 100 {
+            if p.overall == 0 {
                 ui.update_button.set_sensitive(true);
                 ui.apply_check_button.set_sensitive(true);
             }
