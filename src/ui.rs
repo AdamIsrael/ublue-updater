@@ -84,6 +84,7 @@ impl Component for App {
                         connect_clicked => Input::Update,
                     },
 
+                    // TODO: need to track the state of the checkbox between launches
                     append: apply = &gtk::CheckButton {
                         set_label: Some("Auto-reboot if the OS image is updated?"),
                         connect_toggled => Input::Apply,
@@ -167,13 +168,11 @@ impl Component for App {
     ) {
         if let CmdOut::Finished = message {
             self.updating = false;
-            if self.reboot {
-                if utils::check_reboot_needed() {
-                    // I'm not sure if this is helping or not, tbh, but I can only test once/day.
-                    std::thread::sleep(std::time::Duration::from_secs(3));
+            if self.reboot && utils::check_reboot_needed() {
+                // I'm not sure if this is helping or not, tbh, but I can only test once/day.
+                std::thread::sleep(std::time::Duration::from_secs(3));
 
-                    utils::reboot_system();
-                }
+                utils::reboot_system();
             }
         }
         self.task = Some(message);
