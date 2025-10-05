@@ -1,4 +1,4 @@
-use super::uupd;
+use super::{utils, uupd};
 
 use futures::FutureExt;
 use gtk::prelude::*;
@@ -166,17 +166,14 @@ impl Component for App {
         _root: &Self::Root,
     ) {
         if let CmdOut::Finished = message {
+            self.updating = false;
             if self.reboot {
-                // I'm not sure if this is helping or not, tbh, but I can only test once/day.
-                std::thread::sleep(std::time::Duration::from_secs(3));
+                if utils::check_reboot_needed() {
+                    // I'm not sure if this is helping or not, tbh, but I can only test once/day.
+                    std::thread::sleep(std::time::Duration::from_secs(3));
 
-                let cmd = "systemctl reboot".to_string();
-                Command::new("sh")
-                    .args(["-c", &cmd])
-                    .output()
-                    .expect("Failed to reboot");
-            } else {
-                self.updating = false;
+                    utils::reboot_system();
+                }
             }
         }
         self.task = Some(message);
