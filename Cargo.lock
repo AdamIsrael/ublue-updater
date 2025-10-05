@@ -1030,13 +1030,11 @@ name = "ublue-updater"
 version = "0.1.0"
 dependencies = [
  "futures",
- "glib",
  "gtk4",
  "relm4",
  "relm4-components",
  "serde",
  "serde_json",
- "tokio",
 ]
 
 [[package]]
