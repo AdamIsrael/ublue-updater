@@ -10,4 +10,8 @@ FROM mcr.microsoft.com/devcontainers/rust:latest
 # Optional: Install additional tools
 # RUN apt-get update && apt-get install -y lldb
 
-RUN apt-get update && apt-get install -y libgtk-4-dev build-essential libvte-2.91-gtk4-dev libadwaita-1-dev
+RUN apt-get update && apt-get install -y libgtk-4-dev build-essential libadwaita-1-dev
+
+# flatpak-builder
+# RUN flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+# RUN flatpak install --user --noninteractive flathub org.gnome.Sdk/x86_64/48
