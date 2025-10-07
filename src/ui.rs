@@ -1,7 +1,8 @@
-use super::{utils, uupd};
+use super::{config, utils, uupd};
 
 use futures::FutureExt;
 use gtk::prelude::*;
+use gtk::{gio, glib};
 use relm4::*;
 
 use std::io::BufRead;
@@ -24,6 +25,23 @@ pub struct Widgets {
     update: gtk::Button,
     apply: gtk::CheckButton,
     overall_progress: gtk::ProgressBar,
+}
+
+impl Widgets {
+    fn save_apply(&self) -> Result<(), glib::BoolError> {
+        let settings = gio::Settings::new(config::APP_ID);
+
+        settings.set_boolean("auto-reboot", self.apply.is_active())?;
+
+        Ok(())
+    }
+
+    fn load_apply(&self) {
+        let settings = gio::Settings::new(config::APP_ID);
+
+        let reboot = settings.boolean("auto-reboot");
+        self.apply.set_active(reboot);
+    }
 }
 
 #[derive(Debug)]
@@ -101,16 +119,23 @@ impl Component for App {
 
         root.set_child(Some(&container));
 
+        let widgets = Widgets {
+            update,
+            apply,
+            overall_progress,
+        };
+
+        widgets.load_apply();
+
         ComponentParts {
             model: App::default(),
-            widgets: Widgets {
-                update,
-                apply,
-                overall_progress,
-            },
+            widgets: widgets,
         }
     }
 
+    fn shutdown(&mut self, widgets: &mut Self::Widgets, _output: relm4::Sender<Self::Output>) {
+        widgets.save_apply().unwrap();
+    }
     fn update(&mut self, message: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
         match message {
             Input::Apply => {
