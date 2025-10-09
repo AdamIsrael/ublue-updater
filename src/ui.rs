@@ -1,8 +1,10 @@
 use super::{config, utils, uupd};
+use crate::modals::about::AboutDialog;
 
 use futures::FutureExt;
 use gtk::prelude::*;
-use gtk::{gio, glib};
+use gtk::{HeaderBar, gio, glib};
+use relm4::actions::{RelmAction, RelmActionGroup};
 use relm4::*;
 
 use std::io::BufRead;
@@ -79,6 +81,15 @@ impl Component for App {
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
+        relm4::new_action_group!(pub(super) WindowActionGroup, "win");
+        relm4::new_stateless_action!(AboutAction, WindowActionGroup, "about");
+
+        relm4_macros::menu! {
+            main_menu: {
+                "About" => AboutAction,
+            }
+        };
+
         relm4::view! {
             container = gtk::Box {
                 set_halign: gtk::Align::Center,
@@ -102,7 +113,6 @@ impl Component for App {
                         connect_clicked => Input::Update,
                     },
 
-                    // TODO: need to track the state of the checkbox between launches
                     append: apply = &gtk::CheckButton {
                         set_label: Some("Auto-reboot if the OS image is updated?"),
                         connect_toggled => Input::Apply,
@@ -111,11 +121,18 @@ impl Component for App {
                     append: overall_progress = &gtk::ProgressBar {
                         set_visible: false,
                         set_show_text: true,
-
                     }
                 },
             }
         }
+
+        // Build a new HeaderBar to access the menu
+        let hbar = HeaderBar::new();
+        let mb = gtk::MenuButton::new();
+        mb.set_icon_name("open-menu-symbolic");
+        mb.set_menu_model(Some(&main_menu));
+        hbar.pack_end(&mb);
+        root.set_titlebar(Some(&hbar));
 
         root.set_child(Some(&container));
 
@@ -124,6 +141,16 @@ impl Component for App {
             apply,
             overall_progress,
         };
+
+        // Wire up the menu actions
+        let mut actions = RelmActionGroup::<WindowActionGroup>::new();
+        let about_action = {
+            RelmAction::<AboutAction>::new_stateless(move |_| {
+                AboutDialog::builder().launch(()).detach();
+            })
+        };
+        actions.add_action(about_action);
+        actions.register_for_widget(&root);
 
         widgets.load_apply();
 
