@@ -1,4 +1,5 @@
 mod config;
+mod modals;
 mod ui;
 mod utils;
 mod uupd;

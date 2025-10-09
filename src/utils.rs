@@ -36,8 +36,6 @@ pub fn install_gsettings_schema() {
             .arg(&glib_schemas_dir)
             .output()
             .unwrap();
-    } else {
-        println!("Schema not found: {}", xml_path);
     }
 }
 

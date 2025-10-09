@@ -1076,6 +1076,7 @@ dependencies = [
  "inline-xml",
  "relm4",
  "relm4-components",
+ "relm4-macros",
  "serde",
  "serde_json",
 ]
