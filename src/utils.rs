@@ -1,5 +1,5 @@
 use inline_xml::xml;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 /// Installs our GSettings schema, if they're not already installed.
 pub fn install_gsettings_schema() {
@@ -44,6 +44,8 @@ pub fn check_reboot_needed() -> bool {
     let cmd = "rpm-ostree status --pending-exit-77";
     let rc = Command::new("sh")
         .args(["-c", cmd])
+        // pipe stdout to /dev/null for now. Otherwise it goes to this app's stdout
+        .stdout(Stdio::null())
         .status()
         .expect("Failed to execute command");
     rc.code() == Some(77)

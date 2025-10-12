@@ -12,6 +12,9 @@ pub struct Progress {
     pub description: String,
 
     #[serde(default)]
+    pub previous_overall: u32,
+
+    #[serde(default)]
     pub progress: u32,
 
     #[serde(default)]
