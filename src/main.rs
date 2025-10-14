@@ -61,7 +61,7 @@ fn build_ui(app: &adw::Application) {
         &apply_check_button,
         &progress_bar,
     );
-    let window = ui::get_window(app, "UBlue Updater", main_box);
+    let window = ui::get_window(app, "Renovatio", main_box);
 
     // Now that we have the window, connect the menu actions
     actions::set_about(&app, &window);

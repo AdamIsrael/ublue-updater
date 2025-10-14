@@ -5,7 +5,7 @@ use std::process::{Command, Stdio};
 pub fn install_gsettings_schema() {
     let xml = xml! {
         <schemalist>
-            <schema id="com.github.AdamIsrael.UblueUpdater" path="/com/github/AdamIsrael/UblueUpdater/">
+            <schema id="com.github.AdamIsrael.Renovatio" path="/com/github/AdamIsrael/Renovatio/">
             <key name="auto-reboot" type="b">
                 <default>false</default>
                 <summary>A flag to enable automatic reboot after update</summary>
@@ -23,7 +23,7 @@ pub fn install_gsettings_schema() {
 
     let xml_path = format!(
         "{}/{}",
-        glib_schemas_dir, "com.github.AdamIsrael.UblueUpdater.gschema.xml"
+        glib_schemas_dir, "com.github.AdamIsrael.Renovatio.gschema.xml"
     );
 
     if !std::fs::exists(&xml_path).unwrap_or(false) {

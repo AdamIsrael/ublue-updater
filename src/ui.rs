@@ -57,7 +57,7 @@ pub fn get_update_button() -> Button {
 
 pub fn get_header_bar() -> adw::HeaderBar {
     let header_bar = adw::HeaderBar::new();
-    let window_title = adw::WindowTitle::builder().title("Ublue Updater").build();
+    let window_title = adw::WindowTitle::builder().title("Renovatio").build();
 
     let main_menu = gio::Menu::new();
     main_menu.append(Some("About"), Some("app.about"));

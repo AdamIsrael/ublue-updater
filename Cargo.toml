@@ -1,5 +1,5 @@
 [package]
-name = "ublue-updater"
+name = "renovatio"
 version = "0.1.0"
 edition = "2024"
 
