@@ -69,8 +69,8 @@ fn build_ui(app: &adw::Application) {
     let window = ui::get_window(app, "Renovatio", main_box);
 
     // Now that we have the window, connect the menu actions
-    actions::set_about(&app, &window);
-    actions::set_quit(&app);
+    actions::set_about(app, &window);
+    actions::set_quit(app);
 
     // Present window
     window.present();

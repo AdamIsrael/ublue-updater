@@ -24,11 +24,7 @@ pub fn find_plugins() -> Vec<String> {
                 if entry.file_type().unwrap().is_file()
                     && entry.file_name().to_str().unwrap().ends_with(".so")
                 {
-                    let plugin = format!(
-                        "{}/{}",
-                        path,
-                        entry.file_name().to_str().unwrap().to_string()
-                    );
+                    let plugin = format!("{}/{}", path, entry.file_name().to_str().unwrap());
 
                     plugins.push(plugin);
                 }
