@@ -13,6 +13,8 @@ use libloading::{Library, Symbol};
 use std::cell::RefCell;
 use std::sync::mpsc;
 
+type PluginType = unsafe fn() -> *mut dyn Plugin;
+
 fn main() -> glib::ExitCode {
     // Initialize our GSettings schema, if it doesn't exist
     utils::install_gsettings_schema();
@@ -100,8 +102,7 @@ fn execute_command_async(mut ui: ui::UiModel) {
     std::thread::spawn(move || {
         unsafe {
             if let Ok(lib) = Library::new(plugin) {
-                let result: Result<Symbol<unsafe fn() -> *mut dyn Plugin>, _> =
-                    lib.get(b"create_plugin\0");
+                let result: Result<Symbol<PluginType>, _> = lib.get(b"create_plugin\0");
                 if let Ok(create_plugin) = result {
                     let plugin_ptr = create_plugin();
                     let plugin: Box<dyn Plugin> = Box::from_raw(plugin_ptr); // Reclaim ownership
