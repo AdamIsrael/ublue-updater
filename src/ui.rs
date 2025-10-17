@@ -6,9 +6,13 @@ use gtk::{Box, Button, CheckButton, ProgressBar};
 // UiModel provides our worker thread with access to update the UI
 #[derive(Clone)]
 pub struct UiModel {
+    /// The number of plugins loaded.
+    pub plugin_count: u32,
+
     pub apply_check_button: CheckButton,
     pub update_button: Button,
-    pub progress_bar: ProgressBar,
+    pub total_progress_bar: ProgressBar,
+    pub plugin_progress_bar: ProgressBar,
 }
 
 pub fn get_apply_check_button() -> CheckButton {
@@ -33,7 +37,20 @@ pub fn get_apply_check_button() -> CheckButton {
     cb
 }
 
-pub fn get_progress_bar() -> ProgressBar {
+pub fn get_plugin_progress_bar() -> ProgressBar {
+    ProgressBar::builder()
+        .margin_top(12)
+        .margin_bottom(3)
+        .margin_start(12)
+        .margin_end(12)
+        // .pulse_step(25.0)
+        .show_text(true)
+        .text("")
+        .visible(false)
+        .build()
+}
+
+pub fn get_total_progress_bar() -> ProgressBar {
     ProgressBar::builder()
         .margin_top(12)
         .margin_bottom(6)
@@ -76,7 +93,8 @@ pub fn get_main_container(
     header_bar: &adw::HeaderBar,
     update_button: &Button,
     apply_check_button: &CheckButton,
-    progress_bar: &ProgressBar,
+    plugin_progress_bar: &ProgressBar,
+    total_progress_bar: &ProgressBar,
 ) -> Box {
     // Create main container
     let parent = Box::new(gtk::Orientation::Vertical, 6);
@@ -87,7 +105,8 @@ pub fn get_main_container(
 
     main_box.append(update_button);
     main_box.append(apply_check_button);
-    main_box.append(progress_bar);
+    main_box.append(plugin_progress_bar);
+    main_box.append(total_progress_bar);
 
     let clamp = adw::Clamp::builder()
         .child(&main_box)
