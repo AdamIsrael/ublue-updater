@@ -2,39 +2,60 @@ use renovatio::{Plugin, PluginProgress};
 
 use serde::{Deserialize, Serialize};
 
-use flume::Sender;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
-// #[derive(Clone, Deserialize, Serialize, Debug)]
-// pub struct UupdProgress {
-//     pub level: String,
-//     pub msg: String,
-
-//     #[serde(default)]
-//     pub title: String,
-
-//     #[serde(default)]
-//     pub description: String,
-
-//     #[serde(default)]
-//     pub previous_overall: u32,
-
-//     #[serde(default)]
-//     pub progress: u32,
-
-//     #[serde(default)]
-//     pub total: u32,
-
-//     #[serde(default)]
-//     pub step_progress: u32,
-
-//     #[serde(default)]
-//     pub overall: u32,
+// brew outdated --json
+// {
+//   "formulae": [
+//     {
+//       "name": "k9s",
+//       "installed_versions": [
+//         "0.50.15"
+//       ],
+//       "current_version": "0.50.16",
+//       "pinned": false,
+//       "pinned_version": null
+//     }
+//   ],
+//   "casks": []
 // }
 
-// Implementation of uupd
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct Formulae {
+    pub name: String,
+    pub installed_versions: Vec<String>,
+    pub current_version: String,
+    pub pinned: bool,
+    pub pinned_version: Option<String>,
+}
+
+impl Formulae {
+    pub fn new() -> Formulae {
+        Formulae {
+            name: "".to_string(),
+            installed_versions: Vec::new(),
+            current_version: "".to_string(),
+            pinned: false,
+            pinned_version: None,
+        }
+    }
+}
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct Outdated {
+    pub formulae: Vec<Formulae>,
+    pub casks: Vec<Formulae>,
+}
+
+impl Outdated {
+    pub fn new() -> Outdated {
+        Outdated {
+            formulae: Vec::new(),
+            casks: Vec::new(),
+        }
+    }
+}
+
+// Implementation of brew
 pub struct Brew;
 
 impl Plugin for Brew {
@@ -52,96 +73,107 @@ impl Plugin for Brew {
     }
 
     /// Uupd conflicts with all other plugins
-    fn conflicts(&self, _plugin_name: &str) -> bool {
-        true
+    fn conflicts(&self, plugin_name: &str) -> bool {
+        if plugin_name == "uupd" { true } else { false }
     }
 
     /// Run uupd
     extern "Rust" fn update(&self, tx: flume::Sender<PluginProgress>) -> bool {
-        // This will run uupd and output the progress in json, which we'll use serde to parse
-        // the status, do some conversion to make the progress bar more accurate, and bubble
-        // that information up to the status closure.
-        let cmd = "pkexec uupd --json";
-
-        // if let Ok(child_process) = Command::new("sh")
-        //     .args(["-c", cmd])
-        //     .stdout(Stdio::piped())
-        //     .spawn()
-        // {
-        //     let incoming = child_process.stdout.unwrap();
-        //     let mut previous_overall = 0;
-
-        //     let _ = &BufReader::new(incoming).lines().for_each(|line| {
-        //         let data = line.unwrap();
-        //         println!("Received data: {}", data);
-        //         let mut finished = false;
-
-        //         // Unwrap the data from uupd
-        //         let mut p: UupdProgress = serde_json::from_str(&data).unwrap();
-
-        //         p.previous_overall = previous_overall;
-
-        //         // Track the previous progress
-        //         previous_overall = p.overall;
-
-        //         let progress = if (p.progress + 1) < p.total {
-        //             p.progress + 1
-        //         } else {
-        //             p.progress
-        //         };
-
-        //         let mut msg = format!(
-        //             "{} {} - {} (step {}/{})...",
-        //             p.msg,
-        //             p.title,
-        //             p.description,
-        //             progress,
-        //             p.total + 1
-        //         );
-
-        //         if p.progress == 100 || (progress == 0 && p.total == 0) {
-        //             finished = true;
-        //         }
-
-        //         if finished {
-        //             msg = "Update complete.".to_string();
-        //         }
-
-        //         // Update renovatio with our current progress
-        //         let pgrss = Progress {
-        //             progress: p.previous_overall,
-        //             status: msg,
-        //         };
-
-        //         // Send the progress back to the main thread and update the UI
-        //         let _ = tx.send(pgrss);
-        //         tick();
-        //     });
-        // };
         let mut pgrss = PluginProgress {
             name: self.name().to_string(),
-            progress: 25,
-            status: "Fetching the newest version of Homebrew...".to_string(),
+            progress: 0,
+            status: "".to_string(),
             stdout: None,
             stderr: None,
         };
-        let _ = tx.send(pgrss.clone());
-        std::thread::sleep(std::time::Duration::from_millis(1000));
 
-        pgrss.progress = 50;
-        pgrss.status = "Upgrading formulae...".to_string();
+        // run a `brew update`
+        pgrss.status = "Updating brew...".to_string();
+        pgrss.progress = 5;
         let _ = tx.send(pgrss.clone());
-        std::thread::sleep(std::time::Duration::from_millis(1000));
 
-        pgrss.progress = 75;
-        pgrss.status = "Upgrading casks...".to_string();
+        let (mut stdout, mut stderr, mut success) = update();
+        if !success {
+            pgrss.status = "Failed to update brew".to_string();
+            pgrss.stderr = Some(stderr);
+            let _ = tx.send(pgrss.clone());
+            return false;
+        }
+
+        // Get a list of outdated packages
+        pgrss.status = "Getting outdated packages...".to_string();
+        pgrss.stdout = Some(stdout.clone());
+        pgrss.progress = 10;
         let _ = tx.send(pgrss.clone());
-        std::thread::sleep(std::time::Duration::from_millis(1000));
 
+        (stdout, stderr, success) = get_outdated();
+        if !success {
+            pgrss.status = "Failed to get outdated brew".to_string();
+            pgrss.stderr = Some(stderr);
+            let _ = tx.send(pgrss.clone());
+            return false;
+        }
+        let outdated: Outdated = serde_json::from_str(&stdout).unwrap();
+
+        // calculate the total progress based on the number of outdated formulae and casks
+        let total_progress = outdated.formulae.len() + outdated.casks.len();
+
+        // Figure out how much each step should progress, minus the first two hard-coded steps
+        let step_progress = 100 / total_progress - (2 * total_progress);
+
+        // Upgrade each formulae
+        for formulae in outdated.formulae {
+            pgrss.status = format!("Upgrading formulae {}...", formulae.name);
+            pgrss.stdout = None;
+            pgrss.stderr = None;
+            let _ = tx.send(pgrss.clone());
+
+            (stdout, stderr, success) = upgrade_formulae(&formulae.name);
+            if !success {
+                pgrss.status = format!("Failed to upgrade formulae {}", formulae.name);
+                pgrss.stderr = Some(stderr.clone());
+                let _ = tx.send(pgrss.clone());
+                // Continue updating
+            }
+
+            pgrss.progress = step_progress as u32;
+            pgrss.stdout = Some(stdout.clone());
+            if !stderr.is_empty() {
+                pgrss.stderr = Some(stderr.clone());
+            }
+            let _ = tx.send(pgrss.clone());
+        }
+
+        // Upgrade each cask
+        for cask in outdated.casks {
+            pgrss.status = format!("Upgrading cask {}...", cask.name);
+            pgrss.stdout = None;
+            pgrss.stderr = None;
+            let _ = tx.send(pgrss.clone());
+
+            (stdout, stderr, success) = upgrade_cask(&cask.name);
+            if !success {
+                pgrss.status = format!("Failed to upgrade cask {}", cask.name);
+                pgrss.stderr = Some(stderr.clone());
+                let _ = tx.send(pgrss.clone());
+                // Continue updating
+            }
+
+            pgrss.stdout = Some(stdout.clone());
+            if !stderr.is_empty() {
+                pgrss.stderr = Some(stderr.clone());
+            }
+            pgrss.progress = step_progress as u32;
+            let _ = tx.send(pgrss.clone());
+        }
+
+        // Done!
         pgrss.progress = 100;
-        pgrss.status = "Finished!".to_string();
+        pgrss.stdout = None;
+        pgrss.stderr = None;
+
+        pgrss.status = "Upgrade completed!".to_string();
         let _ = tx.send(pgrss.clone());
-        std::thread::sleep(std::time::Duration::from_millis(1000));
 
         true
     }
@@ -151,4 +183,49 @@ impl Plugin for Brew {
 #[unsafe(no_mangle)]
 pub fn create_plugin() -> *mut dyn Plugin {
     Box::into_raw(Box::new(Brew))
+}
+
+/// Execute a command and return it's stdout, stderr, and success/failure
+fn execute(command: &str) -> (String, String, bool) {
+    let mut stdout = String::new();
+    let mut stderr = String::new();
+    let mut success = false;
+
+    let cmd = Command::new("sh").args(["-c", command]).output();
+
+    match cmd {
+        Ok(output) => {
+            if output.status.success() {
+                stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                success = true;
+            } else {
+                stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            }
+        }
+        Err(error) => {
+            eprintln!("Error executing command: {}", error);
+        }
+    }
+
+    (stdout, stderr, success)
+}
+
+fn get_outdated() -> (String, String, bool) {
+    let cmd = "brew outdated --json";
+    execute(cmd)
+}
+
+fn update() -> (String, String, bool) {
+    // run a `brew update`
+    execute("brew update")
+}
+
+fn upgrade_formulae(formula: &str) -> (String, String, bool) {
+    // run a `brew upgrade <formula> --dry-run`
+    execute(&format!("brew upgrade {} --dry-run", formula))
+}
+
+fn upgrade_cask(cask: &str) -> (String, String, bool) {
+    // run a `brew upgrade --cask <formula> --dry-run`
+    execute(&format!("brew upgrade --cask {} --dry-run", cask))
 }
