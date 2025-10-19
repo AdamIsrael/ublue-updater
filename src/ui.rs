@@ -78,6 +78,7 @@ pub fn get_header_bar() -> adw::HeaderBar {
 
     let main_menu = gio::Menu::new();
     main_menu.append(Some("About"), Some("app.about"));
+    main_menu.append(Some("Preferences"), Some("app.preferences"));
     main_menu.append(Some("Quit"), Some("app.quit"));
 
     let mb = gtk::MenuButton::new();

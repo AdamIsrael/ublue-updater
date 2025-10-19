@@ -1,5 +1,5 @@
 [package]
-name = "uupd"
+name = "rpm-ostree"
 version = "0.1.0"
 edition = "2024"
 

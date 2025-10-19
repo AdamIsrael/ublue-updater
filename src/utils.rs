@@ -43,6 +43,13 @@ pub fn install_gsettings_schema() {
                 <default>false</default>
                 <summary>A flag to enable automatic reboot after update</summary>
             </key>
+
+            <key name="plugins" type="as">
+              <default>{"[]"}</default>
+              <summary></summary>
+              <description></description>
+            </key>
+
             </schema>
         </schemalist>
     };

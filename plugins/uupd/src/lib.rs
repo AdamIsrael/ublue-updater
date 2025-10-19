@@ -2,10 +2,10 @@ use renovatio::{Plugin, Progress};
 
 use serde::{Deserialize, Serialize};
 
+use flume::Sender;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::process::{Command, Stdio};
-use std::sync::mpsc::Sender;
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct UupdProgress {
@@ -43,7 +43,12 @@ impl Plugin for Uupd {
     }
 
     fn description(&self) -> &str {
-        "uupd updates the bootc, rpm-ostree, flatpak, brew, and distrobox."
+        "uupd updates bootc, rpm-ostree, flatpak, brew, and distrobox."
+    }
+
+    fn version(&self) -> &str {
+        // TODO: implement versioning
+        "0.1.0"
     }
 
     /// Uupd conflicts with all other plugins
@@ -52,7 +57,7 @@ impl Plugin for Uupd {
     }
 
     /// Run uupd
-    extern "Rust" fn update(&self, tx: Sender<Progress>, tick: extern "Rust" fn()) -> bool {
+    extern "Rust" fn update(&self, tx: flume::Sender<Progress>) -> bool {
         // This will run uupd and output the progress in json, which we'll use serde to parse
         // the status, do some conversion to make the progress bar more accurate, and bubble
         // that information up to the status closure.
@@ -110,9 +115,10 @@ impl Plugin for Uupd {
 
                 // Send the progress back to the main thread and update the UI
                 let _ = tx.send(pgrss);
-                tick();
             });
         };
+        // explicitly drop the tx channel
+        drop(tx);
         true
     }
 }
