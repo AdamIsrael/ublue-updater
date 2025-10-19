@@ -1,4 +1,4 @@
-use renovatio::{Plugin, Progress};
+use renovatio::{Plugin, PluginProgress};
 
 use serde::{Deserialize, Serialize};
 
@@ -57,7 +57,7 @@ impl Plugin for Bootc {
     }
 
     /// Run uupd
-    extern "Rust" fn update(&self, tx: flume::Sender<Progress>) -> bool {
+    extern "Rust" fn update(&self, tx: flume::Sender<PluginProgress>) -> bool {
         // This will run uupd and output the progress in json, which we'll use serde to parse
         // the status, do some conversion to make the progress bar more accurate, and bubble
         // that information up to the status closure.
@@ -119,9 +119,12 @@ impl Plugin for Bootc {
         //     });
         // };
 
-        let mut pgrss = Progress {
+        let mut pgrss = PluginProgress {
+            name: self.name().to_string(),
             progress: 25,
             status: "Downloading image...".to_string(),
+            stdout: None,
+            stderr: None,
         };
         let _ = tx.send(pgrss.clone());
         std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -138,6 +141,7 @@ impl Plugin for Bootc {
 
         pgrss.progress = 100;
         pgrss.status = "Finished!".to_string();
+
         let _ = tx.send(pgrss.clone());
         std::thread::sleep(std::time::Duration::from_millis(1000));
 

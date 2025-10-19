@@ -1,4 +1,4 @@
-use renovatio::{Plugin, Progress};
+use renovatio::{Plugin, PluginProgress};
 
 use serde::{Deserialize, Serialize};
 
@@ -57,7 +57,7 @@ impl Plugin for Uupd {
     }
 
     /// Run uupd
-    extern "Rust" fn update(&self, tx: flume::Sender<Progress>) -> bool {
+    extern "Rust" fn update(&self, tx: flume::Sender<PluginProgress>) -> bool {
         // This will run uupd and output the progress in json, which we'll use serde to parse
         // the status, do some conversion to make the progress bar more accurate, and bubble
         // that information up to the status closure.
@@ -108,9 +108,12 @@ impl Plugin for Uupd {
                 }
 
                 // Update renovatio with our current progress
-                let pgrss = Progress {
+                let pgrss = PluginProgress {
+                    name: self.name().to_string(),
                     progress: p.previous_overall,
                     status: msg,
+                    stdout: None,
+                    stderr: None,
                 };
 
                 // Send the progress back to the main thread and update the UI

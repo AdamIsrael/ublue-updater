@@ -5,7 +5,7 @@ mod ui;
 mod utils;
 
 use flume::{Receiver, unbounded};
-use renovatio::{Plugin, PluginMetadata, Progress};
+use renovatio::{Plugin, PluginMetadata, PluginProgress};
 
 use gtk::prelude::*;
 use libloading::{Library, Symbol};
@@ -71,7 +71,7 @@ fn main() -> glib::ExitCode {
 
 fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::ApplicationWindow {
     // Create a channel that will be used to send messages from worker threads
-    let (tx, rx): (flume::Sender<Progress>, Receiver<Progress>) = unbounded();
+    let (tx, rx): (flume::Sender<PluginProgress>, Receiver<PluginProgress>) = unbounded();
 
     let header_bar = ui::get_header_bar();
     let update_button = ui::get_update_button();
@@ -140,53 +140,8 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
 
                     // wait for the plugin to finish
                 };
-
-                // drop(tx_plugin);
             }
-            // drop(tx_worker);
-
-            // // Simulate heavy work
-            // println!("Worker: starting heavy task…");
-            // let mut p = Progress {
-            //     progress: 1,
-            //     status: "Updating...".to_string(),
-            // };
-            // if tx_worker.send(p.clone()).is_err() {
-            //     eprintln!("Failed to send message – UI may have closed.");
-            // }
-
-            // thread::sleep(std::time::Duration::from_secs(10));
-
-            // p.progress = 100;
-            // p.status = "Update complete".to_string();
-            // // Send result back to the main thread
-            // if tx_worker.send(p.clone()).is_err() {
-            //     eprintln!("Failed to send message – UI may have closed.");
-            // }
-            // // apply.set_sensitive(true);
-            // // update_clone.set_sensitive(true);
-            // drop(tx_clone);
-            // drop(tx_worker);
         });
-
-        // drop(tx_worker);
-
-        // Re-enable the update button and checkbox when updates are finished
-        // apply.set_sensitive(true);
-        // update.set_sensitive(true);
-
-        // Get the UI elements that the secondary thread needs to access
-        // let ui_model = ui::UiModel {
-        //     plugin_count: 0,
-        //     apply_check_button: apply.clone(),
-        //     update_button: update.clone(),
-        //     plugin_progress_bar: ppbar.clone(),
-        //     total_progress_bar: tpbar.clone(),
-        // };
-
-        // // let handle = std::thread::spawn(move || {
-        // execute_command_async(ui_model);
-        // });
     });
 
     let main_box = ui::get_main_container(
@@ -200,7 +155,7 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
 
     // Now that we have the window, connect the menu actions
     actions::set_about(app, &window);
-    actions::set_preferences(app, &window, plugins);
+    actions::set_preferences(app, &window, plugins.clone());
     actions::set_quit(app);
 
     // drop(tx);
@@ -208,24 +163,60 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
     // Present window
     window.present();
 
-    let tbpar_clone = total_progress_bar.clone();
+    let ppbar_clone = plugin_progress_bar.clone();
+    let tpbar_clone = total_progress_bar.clone();
     let apply_clone = apply_check_button.clone();
     let update_clone = update_button.clone();
 
     // This is called each time GTK is idle (i.e., not processing events).
     // It will run as often as possible but never blocks the main loop.
+    // let mut total_progress: u32 = 0;
+    // let mut total_status: String = String::new();
+
+    // let total_progress_clone = total_progress.clone();
+    //
+    let settings = gio::Settings::new(config::APP_ID);
+
+    // Load the enabled plugin(s)
+    let plugins = settings.get::<Vec<String>>("plugins");
+
+    let plugin_count = plugins.len();
+    let mut plugin_index = 1;
     glib::idle_add_local(move || {
         // Try to receive a message. `try_recv` is non‑blocking.
         match rx.try_recv() {
             Ok(progress) => {
+                let total_status = format!(
+                    "Updating {} ({}/{})...",
+                    progress.name, plugin_index, plugin_count
+                );
+
                 // Update the UI
-                tbpar_clone.set_text(Some(&progress.status));
+                tpbar_clone.set_text(Some(&total_status));
+                ppbar_clone.set_text(Some(&progress.status));
                 println!("UI updated with: {:?}", progress);
+
+                ppbar_clone.set_fraction(progress.progress as f64 / 100.0);
+
+                // TODO: Calculate the total progress based on plugin(s) completed
+                // ui.total_progress_bar.set_text(Some("Running uupd..."));
+                // ui.total_progress_bar
+                //     .set_fraction(p.progress as f64 / 100.0);
 
                 if progress.progress == 100 {
                     apply_clone.set_sensitive(true);
                     update_clone.set_sensitive(true);
+                    // total_progress += 1;
+                    //
+                    // If we're done updating the last plugin, update the UI
+                    if plugin_index == plugin_count {
+                        tpbar_clone.set_text(Some("Updates complete!"));
+                        tpbar_clone.set_fraction(0.0);
+                    } else {
+                        plugin_index += 1;
+                    }
                 }
+
                 // Return Continue if you want to keep listening,
                 // or Stop if this idle callback should run only once.
                 glib::ControlFlow::Continue

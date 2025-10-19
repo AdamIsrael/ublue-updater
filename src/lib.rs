@@ -1,9 +1,20 @@
 #[derive(Clone, Debug)]
-pub struct Progress {
+/// PluginProgress is used to communicate the progress of a plugin update
+pub struct PluginProgress {
+    /// The name of the plugin this status belongs to
+    pub name: String,
+
     /// The progress of the update, from 0 to 100
     pub progress: u32,
+
     /// The status of the update
     pub status: String,
+
+    /// The standard output from the update, if available
+    pub stdout: Option<String>,
+
+    /// The standard error from the update, if available
+    pub stderr: Option<String>,
 }
 
 /// PluginMetadata is used to describe a plugin
@@ -50,7 +61,7 @@ pub trait Plugin {
     /// # Returns
     ///
     /// * `bool` - Whether the update was successful
-    extern "Rust" fn update(&self, tx: flume::Sender<Progress>) -> bool;
+    extern "Rust" fn update(&self, tx: flume::Sender<PluginProgress>) -> bool;
 
     // Arc::new(Mutex::new(tx))
 }
