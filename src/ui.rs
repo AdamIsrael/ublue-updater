@@ -3,18 +3,6 @@ use super::config;
 use adw::prelude::*;
 use gtk::{Box, Button, CheckButton, ProgressBar};
 
-// UiModel provides our worker thread with access to update the UI
-#[derive(Clone)]
-pub struct UiModel {
-    /// The number of plugins loaded.
-    pub plugin_count: u32,
-
-    pub apply_check_button: CheckButton,
-    pub update_button: Button,
-    pub total_progress_bar: ProgressBar,
-    pub plugin_progress_bar: ProgressBar,
-}
-
 pub fn get_apply_check_button() -> CheckButton {
     let settings = gio::Settings::new(config::APP_ID);
     let reboot = settings.boolean("auto-reboot");

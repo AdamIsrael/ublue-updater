@@ -256,5 +256,5 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
         }
     });
 
-    return window;
+    window
 }

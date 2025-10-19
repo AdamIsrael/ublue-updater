@@ -29,6 +29,11 @@ pub struct Formulae {
     pub pinned_version: Option<String>,
 }
 
+impl Default for Formulae {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl Formulae {
     pub fn new() -> Formulae {
         Formulae {
@@ -44,6 +49,12 @@ impl Formulae {
 pub struct Outdated {
     pub formulae: Vec<Formulae>,
     pub casks: Vec<Formulae>,
+}
+
+impl Default for Outdated {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Outdated {
@@ -74,7 +85,7 @@ impl Plugin for Brew {
 
     /// Uupd conflicts with all other plugins
     fn conflicts(&self, plugin_name: &str) -> bool {
-        if plugin_name == "uupd" { true } else { false }
+        plugin_name == "uupd"
     }
 
     /// Run uupd

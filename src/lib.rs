@@ -62,6 +62,4 @@ pub trait Plugin {
     ///
     /// * `bool` - Whether the update was successful
     extern "Rust" fn update(&self, tx: flume::Sender<PluginProgress>) -> bool;
-
-    // Arc::new(Mutex::new(tx))
 }
