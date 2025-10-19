@@ -186,6 +186,14 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
         // Try to receive a message. `try_recv` is non‑blocking.
         match rx.try_recv() {
             Ok(progress) => {
+                // handle stdout/stderr
+                if let Some(stdout) = progress.stdout {
+                    println!("[{}]: {}", progress.name, stdout);
+                }
+                if let Some(stderr) = progress.stderr {
+                    println!("[{}]: {}", progress.name, stderr);
+                }
+
                 let total_status = format!(
                     "Updating {} ({}/{})...",
                     progress.name, plugin_index, plugin_count
@@ -194,9 +202,10 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
                 // Update the UI
                 tpbar_clone.set_text(Some(&total_status));
                 ppbar_clone.set_text(Some(&progress.status));
-                println!("UI updated with: {:?}", progress);
 
                 ppbar_clone.set_fraction(progress.progress as f64 / 100.0);
+
+                // TODO: Append stdout and stderr to a `TextView` in the UI
 
                 // TODO: Calculate the total progress based on plugin(s) completed
                 // ui.total_progress_bar.set_text(Some("Running uupd..."));
@@ -206,12 +215,26 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
                 if progress.progress == 100 {
                     apply_clone.set_sensitive(true);
                     update_clone.set_sensitive(true);
-                    // total_progress += 1;
-                    //
+
                     // If we're done updating the last plugin, update the UI
                     if plugin_index == plugin_count {
                         tpbar_clone.set_text(Some("Updates complete!"));
-                        tpbar_clone.set_fraction(0.0);
+                        tpbar_clone.set_fraction(1.0);
+
+                        // Check to see if we need to reboot
+                        let reboot = apply_clone.is_active();
+
+                        let msg = format!(
+                            "Updates complete! {}",
+                            if reboot { "Rebooting..." } else { "" }
+                        );
+
+                        tpbar_clone.set_text(Some(&msg));
+
+                        if reboot && utils::check_reboot_needed() {
+                            std::thread::sleep(std::time::Duration::from_secs(3));
+                            utils::reboot_system();
+                        }
                     } else {
                         plugin_index += 1;
                     }
@@ -235,254 +258,3 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
 
     return window;
 }
-
-// fn execute_command_async(mut ui: ui::UiModel) {
-//     // Disable the update button and checkbox while running uupd
-//     ui.apply_check_button.set_sensitive(false);
-//     ui.update_button.set_sensitive(false);
-//     ui.plugin_progress_bar.set_visible(true);
-//     ui.total_progress_bar.set_visible(true);
-
-//     let settings = gio::Settings::new(config::APP_ID);
-
-//     // Load the enabled plugin(s)
-//     let plugins = settings.get::<Vec<String>>("plugins");
-//     ui.plugin_count = plugins.len() as u32;
-//     // println!("Plugin count: {}", ui.plugin_count);
-//     // let pool = ThreadPool::new(plugins.len());
-
-//     // let (tx, rx) = mpsc::channel();
-//     let (tx, rx) = flume::unbounded();
-//     // let tx = Arc::new(Mutex::new(tx));
-
-//     GLOBAL.with(|global| {
-//         *global.borrow_mut() = Some((ui.clone(), rx));
-//     });
-
-//     for plugin in plugins {
-//         let (tx, rx) = flume::unbounded();
-
-//         // thread::spawn(move || {
-//         //     (0..10).for_each(|i| {
-//         //         let progress = Progress {
-//         //             progress: i,
-//         //             status: "Testing".to_string(),
-//         //         };
-//         //         tx.send(progress).unwrap();
-//         //     })
-//         // });
-
-//         // let progress = rx.recv().unwrap();
-//         // // let received: u32 = rx.iter().sum();
-//         // println!("Received progress: {:?}", progress);
-
-//         // Execute each plugin in a separate thread so we don't block the main thread
-//         let handle = std::thread::spawn(move || {
-//             unsafe {
-//                 // Load the shared library
-//                 if let Ok(lib) = Library::new(plugin) {
-//                     // Instantiate the plugin
-//                     let result: Result<Symbol<PluginType>, _> = lib.get(b"create_plugin\0");
-//                     if let Ok(create_plugin) = result {
-//                         // Get the plugin object
-//                         let plugin_ptr = create_plugin();
-//                         let plugin: Box<dyn Plugin> = Box::from_raw(plugin_ptr); // Reclaim ownership
-
-//                         println!("Running update for Plugin: {}", plugin.name());
-
-//                         let t = || {
-//                             println!(
-//                                 "closure tick called for thread {:?}",
-//                                 std::thread::current().id()
-//                             );
-//                         };
-//                         // pool.execute(|| {
-//                         //     println!("Executing in thread {:?}", std::thread::current().id());
-//                         // });
-
-//                         // Run the blocking update
-//                         if plugin.update(tx, tick) {
-//                             println!("Update successful");
-//                         } else {
-//                             println!("Update failed");
-//                         }
-
-//                         // tick();
-//                         std::thread::sleep(std::time::Duration::from_millis(5000));
-//                     }
-//                 }
-//             };
-//         });
-
-//         // while let Ok(p) = rx.recv() {
-//         //     println!("Received progress: {:?}", p);
-
-//         //     // glib::source::idle_add(|| {
-//         //     //     println!("Checking for new message");
-//         //     //     check_for_new_message();
-//         //     //     glib::ControlFlow::Break
-//         //     // });
-
-//         //     // ui.plugin_progress_bar.set_text(Some(&p.status));
-//         //     // ui.plugin_progress_bar
-//         //     //     .set_fraction(p.progress as f64 / 100.0);
-
-//         //     // // TODO: Calculate the total progress based on plugin(s) completed
-//         //     // ui.total_progress_bar.set_text(Some("Running uupd..."));
-//         //     // ui.total_progress_bar
-//         //     //     .set_fraction(p.progress as f64 / 100.0);
-
-//         //     // let finished = p.progress == 100;
-
-//         //     // // If the progress is complete, re-enable the disabled UI elements
-//         //     // if finished {
-//         //     //     ui.update_button.set_sensitive(true);
-//         //     //     ui.apply_check_button.set_sensitive(true);
-
-//         //     //     let reboot = ui.apply_check_button.is_active();
-
-//         //     //     let msg = format!(
-//         //     //         "Updates complete! {}",
-//         //     //         if reboot { "Rebooting..." } else { "" }
-//         //     //     );
-
-//         //     //     // ui.plugin_progress_bar.set_pulse_step(0.0);
-
-//         //     //     ui.total_progress_bar.set_text(Some(&msg));
-//         //     //     ui.total_progress_bar.set_fraction(1.0);
-
-//         //     //     if reboot && utils::check_reboot_needed() {
-//         //     //         utils::reboot_system();
-//         //     //     }
-//         //     // }
-//         // }
-
-//         // println!("Thread ID: {:?}", handle.thread().id());
-
-//         // println!("Main thread: Doing other work...");
-//         // std::thread::sleep(std::time::Duration::from_millis(1000));
-
-//         // println!("Main thread: Waiting for spawned thread to finish...");
-//         // while !handle.is_finished() {
-//         //     std::thread::sleep(std::time::Duration::from_millis(1000));
-
-//         //     // tick();
-//         //     // check_for_new_message();
-//         // }
-//         // // handle.join().unwrap();
-//         // println!("Thread finished");
-//     }
-// }
-
-// extern "Rust" fn tick() {
-//     // Tell the UI thread to read from the channel
-//     println!("tick from thread ID: {:?}", std::thread::current().id());
-
-//     // glib::source::idle_add(|| {
-//     //     println!("Checking for new message");
-//     //     check_for_new_message();
-//     //     glib::ControlFlow::Break
-//     // });
-// }
-
-// // global variable to store the ui and an input channel
-// // on the main thread only
-// thread_local!(
-//     static GLOBAL: RefCell<Option<(ui::UiModel, flume::Receiver<renovatio::Progress>)>> =
-//         const { RefCell::new(None) };
-// );
-
-// // function to check if a new message has been passed through the
-// // global receiver and, if so, add it to the UI.
-// fn check_for_new_message() {
-//     GLOBAL.with(|global| {
-//         if let Some((ui, rx)) = &*global.borrow() {
-//             // Receive the Progress struct
-
-//             // In theory, we can use a loop to continuously receive messages from the channel
-//             // so that we only need to call this function once per thread.
-//             // while let Ok(p) = rx.try_recv() {
-//             //     println!("Receiving on thread ID: {:?}", std::thread::current().id());
-//             //     println!("progress: {:?}", p);
-
-//             //     // Plugin progress goes to the plugin_progress_bar
-//             //     ui.plugin_progress_bar.set_text(Some(&p.status));
-//             //     ui.plugin_progress_bar
-//             //         .set_fraction(p.progress as f64 / 100.0);
-
-//             //     // TODO: Calculate the total progress based on plugin(s) completed
-//             //     ui.total_progress_bar.set_text(Some("Running uupd..."));
-//             //     ui.total_progress_bar
-//             //         .set_fraction(p.progress as f64 / 100.0);
-
-//             //     let finished = p.progress == 100;
-
-//             //     // If the progress is complete, re-enable the disabled UI elements
-//             //     if finished {
-//             //         ui.update_button.set_sensitive(true);
-//             //         ui.apply_check_button.set_sensitive(true);
-
-//             //         let reboot = ui.apply_check_button.is_active();
-
-//             //         let msg = format!(
-//             //             "Updates complete! {}",
-//             //             if reboot { "Rebooting..." } else { "" }
-//             //         );
-
-//             //         // ui.plugin_progress_bar.set_pulse_step(0.0);
-
-//             //         ui.total_progress_bar.set_text(Some(&msg));
-//             //         ui.total_progress_bar.set_fraction(1.0);
-
-//             //         if reboot && utils::check_reboot_needed() {
-//             //             utils::reboot_system();
-//             //         }
-//             //     }
-//             // }
-//             println!("Receiving on thread ID: {:?}", std::thread::current().id());
-
-//             let res = rx.recv();
-//             if let Err(e) = res {
-//                 println!("Error receiving progress: {}", e);
-//                 return;
-//             }
-
-//             let p: renovatio::Progress = res.unwrap();
-//             println!("progress: {:?}", p);
-
-//             // Plugin progress goes to the plugin_progress_bar
-//             ui.plugin_progress_bar.set_text(Some(&p.status));
-//             ui.plugin_progress_bar
-//                 .set_fraction(p.progress as f64 / 100.0);
-
-//             // TODO: Calculate the total progress based on plugin(s) completed
-//             ui.total_progress_bar.set_text(Some("Running uupd..."));
-//             ui.total_progress_bar
-//                 .set_fraction(p.progress as f64 / 100.0);
-
-//             let finished = p.progress == 100;
-
-//             // If the progress is complete, re-enable the disabled UI elements
-//             if finished {
-//                 ui.update_button.set_sensitive(true);
-//                 ui.apply_check_button.set_sensitive(true);
-
-//                 let reboot = ui.apply_check_button.is_active();
-
-//                 let msg = format!(
-//                     "Updates complete! {}",
-//                     if reboot { "Rebooting..." } else { "" }
-//                 );
-
-//                 // ui.plugin_progress_bar.set_pulse_step(0.0);
-
-//                 ui.total_progress_bar.set_text(Some(&msg));
-//                 ui.total_progress_bar.set_fraction(1.0);
-
-//                 if reboot && utils::check_reboot_needed() {
-//                     utils::reboot_system();
-//                 }
-//             }
-//         }
-//     });
-// }
