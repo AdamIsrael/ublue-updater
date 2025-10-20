@@ -1,41 +1,7 @@
-use renovatio::{Plugin, PluginProgress};
+use renovatio::{Plugin, PluginProgress, execute};
 
-use serde::{Deserialize, Serialize};
-
-use flume::Sender;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::process::{Command, Stdio};
-
-// #[derive(Clone, Deserialize, Serialize, Debug)]
-// pub struct UupdProgress {
-//     pub level: String,
-//     pub msg: String,
-
-//     #[serde(default)]
-//     pub title: String,
-
-//     #[serde(default)]
-//     pub description: String,
-
-//     #[serde(default)]
-//     pub previous_overall: u32,
-
-//     #[serde(default)]
-//     pub progress: u32,
-
-//     #[serde(default)]
-//     pub total: u32,
-
-//     #[serde(default)]
-//     pub step_progress: u32,
-
-//     #[serde(default)]
-//     pub overall: u32,
-// }
-
-// Implementation of uupd
 pub struct Flatpak;
+// Implementation of flatpak
 
 impl Plugin for Flatpak {
     fn name(&self) -> &str {
@@ -151,4 +117,15 @@ impl Plugin for Flatpak {
 #[unsafe(no_mangle)]
 pub fn create_plugin() -> *mut dyn Plugin {
     Box::into_raw(Box::new(Flatpak))
+}
+
+fn list_updates() -> Vec<String> {
+    let mut updates = Vec::new();
+    // Add logic to list updates here
+    // `flatpak remote-ls --updates` may do it, but I can't test b/c my flatpaks are all updated
+    updates
+}
+
+fn upgrade(name: &str) -> (String, String, i32) {
+    execute(format!("flatpak update {}", name).as_str())
 }

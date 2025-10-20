@@ -67,18 +67,18 @@ pub trait Plugin {
 }
 
 /// Execute a command and return it's stdout, stderr, and success/failure
-pub fn execute(command: &str) -> (String, String, bool) {
+pub fn execute(command: &str) -> (String, String, i32) {
     let mut stdout = String::new();
     let mut stderr = String::new();
-    let mut success = false;
+    let mut rc = 1; // default to non-zero
 
     let cmd = Command::new("sh").args(["-c", command]).output();
 
     match cmd {
         Ok(output) => {
+            rc = output.status.code().unwrap_or(0);
             if output.status.success() {
                 stdout = String::from_utf8_lossy(&output.stdout).to_string();
-                success = true;
             } else {
                 stderr = String::from_utf8_lossy(&output.stderr).to_string();
             }
@@ -88,5 +88,5 @@ pub fn execute(command: &str) -> (String, String, bool) {
         }
     }
 
-    (stdout, stderr, success)
+    (stdout, stderr, rc)
 }

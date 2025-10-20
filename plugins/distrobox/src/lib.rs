@@ -48,7 +48,7 @@ impl Plugin for Distrobox {
             let _ = tx.send(pgrss.clone());
 
             let (stdout, stderr, success) = upgrade(&distrobox);
-            if !success {
+            if success != 0 {
                 pgrss.status = format!("Failed to upgrade distrobox {}", distrobox);
                 pgrss.stderr = Some(stderr.clone());
                 let _ = tx.send(pgrss.clone());
@@ -82,7 +82,9 @@ pub fn create_plugin() -> *mut dyn Plugin {
 }
 
 pub fn list() -> Vec<String> {
-    // todo: run `distrobox list` and parse the output
+    // todo: run `distrobox list --no-color` and parse the output
+    let (stdout, stderr, success) = execute("distrobox list --no-color");
+    println!("stdout: {}", stdout);
     vec![
         "fedora42".to_string(),
         "trixie".to_string(),
@@ -90,6 +92,6 @@ pub fn list() -> Vec<String> {
     ]
 }
 
-pub fn upgrade(name: &str) -> (String, String, bool) {
+pub fn upgrade(name: &str) -> (String, String, i32) {
     execute(format!("distrobox upgrade {}", name).as_str())
 }

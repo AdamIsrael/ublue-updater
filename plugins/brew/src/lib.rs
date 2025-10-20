@@ -102,7 +102,7 @@ impl Plugin for Brew {
         let _ = tx.send(pgrss.clone());
 
         let (mut stdout, mut stderr, mut success) = update();
-        if !success {
+        if success != 0 {
             pgrss.status = "Failed to update brew".to_string();
             pgrss.stderr = Some(stderr);
             let _ = tx.send(pgrss.clone());
@@ -116,7 +116,7 @@ impl Plugin for Brew {
         let _ = tx.send(pgrss.clone());
 
         (stdout, stderr, success) = get_outdated();
-        if !success {
+        if success != 0 {
             pgrss.status = "Failed to get outdated brew".to_string();
             pgrss.stderr = Some(stderr);
             let _ = tx.send(pgrss.clone());
@@ -138,7 +138,7 @@ impl Plugin for Brew {
             let _ = tx.send(pgrss.clone());
 
             (stdout, stderr, success) = upgrade_formulae(&formulae.name);
-            if !success {
+            if success != 0 {
                 pgrss.status = format!("Failed to upgrade formulae {}", formulae.name);
                 pgrss.stderr = Some(stderr.clone());
                 let _ = tx.send(pgrss.clone());
@@ -161,7 +161,7 @@ impl Plugin for Brew {
             let _ = tx.send(pgrss.clone());
 
             (stdout, stderr, success) = upgrade_cask(&cask.name);
-            if !success {
+            if success != 0 {
                 pgrss.status = format!("Failed to upgrade cask {}", cask.name);
                 pgrss.stderr = Some(stderr.clone());
                 let _ = tx.send(pgrss.clone());
@@ -194,22 +194,22 @@ pub fn create_plugin() -> *mut dyn Plugin {
     Box::into_raw(Box::new(Brew))
 }
 
-fn get_outdated() -> (String, String, bool) {
+fn get_outdated() -> (String, String, i32) {
     let cmd = "brew outdated --json";
     execute(cmd)
 }
 
-fn update() -> (String, String, bool) {
+fn update() -> (String, String, i32) {
     // run a `brew update`
     execute("brew update")
 }
 
-fn upgrade_formulae(formula: &str) -> (String, String, bool) {
+fn upgrade_formulae(formula: &str) -> (String, String, i32) {
     // run a `brew upgrade <formula> --dry-run`
     execute(&format!("brew upgrade {} --dry-run", formula))
 }
 
-fn upgrade_cask(cask: &str) -> (String, String, bool) {
+fn upgrade_cask(cask: &str) -> (String, String, i32) {
     // run a `brew upgrade --cask <formula> --dry-run`
     execute(&format!("brew upgrade --cask {} --dry-run", cask))
 }
