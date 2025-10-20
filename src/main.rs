@@ -176,13 +176,14 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
     // let total_progress_clone = total_progress.clone();
     //
     let settings = gio::Settings::new(config::APP_ID);
-
-    // Load the enabled plugin(s)
-    let plugins = settings.get::<Vec<String>>("plugins");
-
-    let plugin_count = plugins.len();
     let mut plugin_index = 1;
+
     glib::idle_add_local(move || {
+        // Load the enabled plugin(s)
+        let plugins = settings.get::<Vec<String>>("plugins");
+
+        let plugin_count = plugins.len();
+
         // Try to receive a message. `try_recv` is non‑blocking.
         match rx.try_recv() {
             Ok(progress) => {

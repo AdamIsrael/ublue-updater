@@ -1,3 +1,5 @@
+use std::process::Command;
+
 #[derive(Clone, Debug)]
 /// PluginProgress is used to communicate the progress of a plugin update
 pub struct PluginProgress {
@@ -62,4 +64,29 @@ pub trait Plugin {
     ///
     /// * `bool` - Whether the update was successful
     extern "Rust" fn update(&self, tx: flume::Sender<PluginProgress>) -> bool;
+}
+
+/// Execute a command and return it's stdout, stderr, and success/failure
+pub fn execute(command: &str) -> (String, String, bool) {
+    let mut stdout = String::new();
+    let mut stderr = String::new();
+    let mut success = false;
+
+    let cmd = Command::new("sh").args(["-c", command]).output();
+
+    match cmd {
+        Ok(output) => {
+            if output.status.success() {
+                stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                success = true;
+            } else {
+                stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            }
+        }
+        Err(error) => {
+            eprintln!("Error executing command: {}", error);
+        }
+    }
+
+    (stdout, stderr, success)
 }
