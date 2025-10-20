@@ -1,8 +1,6 @@
-use renovatio::{Plugin, PluginProgress};
+use renovatio::{Plugin, PluginProgress, execute};
 
 use serde::{Deserialize, Serialize};
-
-use std::process::Command;
 
 // brew outdated --json
 // {
@@ -194,31 +192,6 @@ impl Plugin for Brew {
 #[unsafe(no_mangle)]
 pub fn create_plugin() -> *mut dyn Plugin {
     Box::into_raw(Box::new(Brew))
-}
-
-/// Execute a command and return it's stdout, stderr, and success/failure
-fn execute(command: &str) -> (String, String, bool) {
-    let mut stdout = String::new();
-    let mut stderr = String::new();
-    let mut success = false;
-
-    let cmd = Command::new("sh").args(["-c", command]).output();
-
-    match cmd {
-        Ok(output) => {
-            if output.status.success() {
-                stdout = String::from_utf8_lossy(&output.stdout).to_string();
-                success = true;
-            } else {
-                stderr = String::from_utf8_lossy(&output.stderr).to_string();
-            }
-        }
-        Err(error) => {
-            eprintln!("Error executing command: {}", error);
-        }
-    }
-
-    (stdout, stderr, success)
 }
 
 fn get_outdated() -> (String, String, bool) {
