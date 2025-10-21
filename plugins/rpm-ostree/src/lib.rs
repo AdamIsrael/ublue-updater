@@ -24,14 +24,8 @@ impl Plugin for RpmOstree {
 
     /// Run uupd
     extern "Rust" fn update(&self, tx: flume::Sender<PluginProgress>) -> bool {
-        let mut pgrss = PluginProgress {
-            name: self.name().to_string(),
-            progress: 0,
-            status: "".to_string(),
-            stdout: None,
-            stderr: None,
-        };
-
+        let mut pgrss = PluginProgress::new(self.name());
+        pgrss.pulse = true;
         // TODO: need to figure out how to use the _pulse_ on the ProgressBar
 
         // Figure out how much each step should progress

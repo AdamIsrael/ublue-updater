@@ -204,7 +204,12 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
                 tpbar_clone.set_text(Some(&total_status));
                 ppbar_clone.set_text(Some(&progress.status));
 
-                ppbar_clone.set_fraction(progress.progress as f64 / 100.0);
+                if progress.pulse {
+                    ppbar_clone.set_pulse_step(0.25);
+                    ppbar_clone.pulse();
+                } else {
+                    ppbar_clone.set_fraction(progress.progress as f64 / 100.0);
+                }
 
                 // TODO: Append stdout and stderr to a `TextView` in the UI
 
@@ -220,6 +225,10 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
                     // If we're done updating the last plugin, update the UI
                     if plugin_index == plugin_count {
                         tpbar_clone.set_text(Some("Updates complete!"));
+                        if progress.pulse {
+                            ppbar_clone.set_pulse_step(1.0);
+                            ppbar_clone.pulse();
+                        }
                         tpbar_clone.set_fraction(1.0);
 
                         // Check to see if we need to reboot

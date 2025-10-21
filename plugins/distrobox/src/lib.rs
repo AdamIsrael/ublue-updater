@@ -24,13 +24,7 @@ impl Plugin for Distrobox {
 
     /// Run uupd
     extern "Rust" fn update(&self, tx: flume::Sender<PluginProgress>) -> bool {
-        let mut pgrss = PluginProgress {
-            name: self.name().to_string(),
-            progress: 0,
-            status: "".to_string(),
-            stdout: None,
-            stderr: None,
-        };
+        let mut pgrss = PluginProgress::new(self.name());
 
         // List the distroboxes
         let distroboxes = list();

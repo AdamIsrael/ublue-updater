@@ -84,13 +84,10 @@ impl Plugin for Flatpak {
         //         tick();
         //     });
         // };
-        let mut pgrss = PluginProgress {
-            name: self.name().to_string(),
-            progress: 25,
-            status: "Downloading updates...".to_string(),
-            stdout: None,
-            stderr: None,
-        };
+        let mut pgrss = PluginProgress::new(self.name());
+        pgrss.progress = 25;
+        pgrss.status = "Downloading updates...".to_string();
+
         let _ = tx.send(pgrss.clone());
         std::thread::sleep(std::time::Duration::from_millis(1000));
 

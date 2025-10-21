@@ -9,6 +9,13 @@ pub struct PluginProgress {
     /// The progress of the update, from 0 to 100
     pub progress: u32,
 
+    /// In lieu of incremental progress, this will pulse the ProgressBar
+    /// to indicate that progress is being made.
+    pub pulse: bool,
+
+    // Indicate if the update requires a reboot
+    pub reboot_required: bool,
+
     /// The status of the update
     pub status: String,
 
@@ -17,6 +24,20 @@ pub struct PluginProgress {
 
     /// The standard error from the update, if available
     pub stderr: Option<String>,
+}
+
+impl PluginProgress {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            progress: 0,
+            pulse: false,
+            reboot_required: false,
+            status: String::new(),
+            stdout: None,
+            stderr: None,
+        }
+    }
 }
 
 /// PluginMetadata is used to describe a plugin

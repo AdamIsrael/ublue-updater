@@ -108,13 +108,8 @@ impl Plugin for Uupd {
                 }
 
                 // Update renovatio with our current progress
-                let pgrss = PluginProgress {
-                    name: self.name().to_string(),
-                    progress: p.previous_overall,
-                    status: msg,
-                    stdout: None,
-                    stderr: None,
-                };
+                let mut pgrss = PluginProgress::new(self.name());
+                pgrss.progress = p.previous_overall;
 
                 // Send the progress back to the main thread and update the UI
                 let _ = tx.send(pgrss);
