@@ -192,7 +192,7 @@ impl Plugin for Bootc {
         // Check the status to see if there's an update available
         if let Some(status) = get_status() {
             // Check to see if there's an update
-            println!("Status: {:?}", status);
+            // println!("Status: {:?}", status);
 
             // May need to flip this logic. If there is a cached update, it means it's been downloaded
             // and we need to reboot. If it's none, then we should run the upgrade to determine if there's an update
@@ -206,6 +206,7 @@ impl Plugin for Bootc {
                 // There's a cached update, so a) update the progress and b) run the upgrade
                 pgrss.status = format!("OS upgrade to {} pending reboot", new_version);
                 pgrss.progress = 100;
+                pgrss.pulse = false;
                 pgrss.reboot_required = true;
                 // pgrss.status = "OS upgrade pending reboot!".to_string();
                 let _ = tx.send(pgrss.clone());
@@ -219,6 +220,7 @@ impl Plugin for Bootc {
 
                 // When the upgrade is complete, signal that we're done.
                 pgrss.progress = 100;
+                pgrss.pulse = false;
 
                 if stdout.contains("No changes in") {
                     pgrss.status = "No updates available".to_string();
@@ -246,8 +248,8 @@ pub fn create_plugin() -> *mut dyn Plugin {
 fn get_status() -> Option<Root> {
     // execute `bootc status --json`
     let (stdout, stderr, rc) = execute("pkexec bootc status --json");
-    println!("stdout: {}", stdout);
-    println!("stderr: {}", stderr);
+    // println!("stdout: {}", stdout);
+    // println!("stderr: {}", stderr);
 
     if rc != 0 {
         return None;

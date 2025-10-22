@@ -184,6 +184,12 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
 
         let plugin_count = plugins.len();
 
+        // Even if we don't have a progress update from a plugin,
+        // pulse the progress bar if we have a pulse_step defined.
+        if ppbar_clone.pulse_step() > 0.0 {
+            ppbar_clone.pulse();
+        }
+
         // Try to receive a message. `try_recv` is non‑blocking.
         match rx.try_recv() {
             Ok(progress) => {
@@ -208,6 +214,7 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
                     ppbar_clone.set_pulse_step(0.25);
                     ppbar_clone.pulse();
                 } else {
+                    ppbar_clone.set_pulse_step(0.0);
                     ppbar_clone.set_fraction(progress.progress as f64 / 100.0);
                 }
 
@@ -224,11 +231,16 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
 
                     // If we're done updating the last plugin, update the UI
                     if plugin_index == plugin_count {
+                        // Disable pulsing and set the bar to 100%
+                        ppbar_clone.set_pulse_step(0.0);
+                        ppbar_clone.set_fraction(1.0);
+
                         tpbar_clone.set_text(Some("Updates complete!"));
-                        if progress.pulse {
-                            ppbar_clone.set_pulse_step(1.0);
-                            ppbar_clone.pulse();
-                        }
+                        // if progress.pulse {
+                        //     ppbar_clone.set_pulse_step(1.0);
+                        //     ppbar_clone.pulse();
+                        // }
+
                         tpbar_clone.set_fraction(1.0);
 
                         // Check to see if we need to reboot

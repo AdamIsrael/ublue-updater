@@ -33,7 +33,10 @@ impl Plugin for Distrobox {
         let total_progress = distroboxes.len();
 
         // Figure out how much each step should progress
-        let step_progress = 100 / total_progress;
+        let mut step_progress = 100;
+        if total_progress > 0 {
+            step_progress = 100 / total_progress;
+        }
 
         for distrobox in distroboxes {
             pgrss.status = format!("Upgrading distrobox {}...", distrobox);
@@ -49,7 +52,7 @@ impl Plugin for Distrobox {
                 // Continue updating
             }
 
-            pgrss.progress = step_progress as u32;
+            pgrss.progress += step_progress as u32;
             pgrss.stdout = Some(stdout.clone());
             if !stderr.is_empty() {
                 pgrss.stderr = Some(stderr.clone());
@@ -76,14 +79,20 @@ pub fn create_plugin() -> *mut dyn Plugin {
 }
 
 pub fn list() -> Vec<String> {
-    // todo: run `distrobox list --no-color` and parse the output
-    let (stdout, stderr, success) = execute("distrobox list --no-color");
-    println!("stdout: {}", stdout);
-    vec![
-        "fedora42".to_string(),
-        "trixie".to_string(),
-        "ubuntu-24.04".to_string(),
-    ]
+    let mut boxes = Vec::new();
+    let (stdout, _stderr, success) = execute("distrobox list --no-color");
+    if success != 0 {
+        return boxes;
+    }
+
+    for line in stdout.lines().skip(1) {
+        let cols = line
+            .split('|')
+            .map(|s| s.trim().to_string())
+            .collect::<Vec<String>>();
+        boxes.push(cols[1].to_string());
+    }
+    boxes
 }
 
 pub fn upgrade(name: &str) -> (String, String, i32) {

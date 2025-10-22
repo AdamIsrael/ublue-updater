@@ -109,8 +109,6 @@ dependencies = [
  "flume",
  "libadwaita",
  "renovatio",
- "serde",
- "serde_json",
 ]
 
 [[package]]
