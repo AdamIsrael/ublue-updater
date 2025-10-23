@@ -6,7 +6,7 @@
 - [x] distrobox
   - [x] parse distrobox names
   - [x] Check/fix ProgressBar progress
-- [ ] flatpak
-  - [ ] implement everything
+- [x] flatpak
+  - [x] implement everything
 - [x] rpm-tree
 - [x] uupd

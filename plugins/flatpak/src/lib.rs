@@ -24,87 +24,66 @@ impl Plugin for Flatpak {
 
     /// Run uupd
     extern "Rust" fn update(&self, tx: flume::Sender<PluginProgress>) -> bool {
-        // This will run uupd and output the progress in json, which we'll use serde to parse
-        // the status, do some conversion to make the progress bar more accurate, and bubble
-        // that information up to the status closure.
-        let cmd = "pkexec uupd --json";
-
-        // if let Ok(child_process) = Command::new("sh")
-        //     .args(["-c", cmd])
-        //     .stdout(Stdio::piped())
-        //     .spawn()
-        // {
-        //     let incoming = child_process.stdout.unwrap();
-        //     let mut previous_overall = 0;
-
-        //     let _ = &BufReader::new(incoming).lines().for_each(|line| {
-        //         let data = line.unwrap();
-        //         println!("Received data: {}", data);
-        //         let mut finished = false;
-
-        //         // Unwrap the data from uupd
-        //         let mut p: UupdProgress = serde_json::from_str(&data).unwrap();
-
-        //         p.previous_overall = previous_overall;
-
-        //         // Track the previous progress
-        //         previous_overall = p.overall;
-
-        //         let progress = if (p.progress + 1) < p.total {
-        //             p.progress + 1
-        //         } else {
-        //             p.progress
-        //         };
-
-        //         let mut msg = format!(
-        //             "{} {} - {} (step {}/{})...",
-        //             p.msg,
-        //             p.title,
-        //             p.description,
-        //             progress,
-        //             p.total + 1
-        //         );
-
-        //         if p.progress == 100 || (progress == 0 && p.total == 0) {
-        //             finished = true;
-        //         }
-
-        //         if finished {
-        //             msg = "Update complete.".to_string();
-        //         }
-
-        //         // Update renovatio with our current progress
-        //         let pgrss = Progress {
-        //             progress: p.previous_overall,
-        //             status: msg,
-        //         };
-
-        //         // Send the progress back to the main thread and update the UI
-        //         let _ = tx.send(pgrss);
-        //         tick();
-        //     });
-        // };
         let mut pgrss = PluginProgress::new(self.name());
-        pgrss.progress = 25;
-        pgrss.status = "Downloading updates...".to_string();
 
-        let _ = tx.send(pgrss.clone());
-        std::thread::sleep(std::time::Duration::from_millis(1000));
+        // Find the system flatpaks needing update
+        let system = list_updates(true);
+        let user = list_updates(false);
 
-        pgrss.progress = 50;
-        pgrss.status = "Installing updates (user)...".to_string();
-        let _ = tx.send(pgrss.clone());
-        std::thread::sleep(std::time::Duration::from_millis(1000));
+        // calculate the total progress based on the number of outdated flatpaks
+        let total_progress = system.len() + user.len();
 
-        pgrss.progress = 75;
-        pgrss.status = "Installing updates (system)...".to_string();
+        // Figure out how much each step should progress
+        let mut step_progress = 100;
+        if total_progress > 0 {
+            step_progress = 100 / total_progress;
+        }
+
+        let mut pgrss_clone = pgrss.clone();
+        let mut upgrade = |flatpak: &str, installation: &str| {
+            pgrss_clone.status = format!("Upgrading {} flatpak {}...", installation, flatpak);
+            pgrss_clone.stdout = None;
+            pgrss_clone.stderr = None;
+            let _ = tx.send(pgrss_clone.clone());
+
+            let (stdout, stderr, success) = upgrade_flatpak(flatpak);
+
+            if success != 0 {
+                pgrss_clone.status =
+                    format!("Failed to upgrade {} flatpak {}", installation, flatpak);
+                pgrss_clone.stderr = Some(stderr.clone());
+                let _ = tx.send(pgrss_clone.clone());
+                // Continue updating
+            }
+
+            pgrss_clone.progress += step_progress as u32;
+            pgrss_clone.stdout = Some(stdout.clone());
+            if !stderr.is_empty() {
+                pgrss_clone.stderr = Some(stderr.clone());
+            }
+            let _ = tx.send(pgrss_clone.clone());
+        };
+
+        pgrss.status = format!("Upgrading flatpaks...");
+        pgrss.progress = 0;
+        pgrss.stdout = None;
+        pgrss.stderr = None;
         let _ = tx.send(pgrss.clone());
-        std::thread::sleep(std::time::Duration::from_millis(1000));
+
+        for flatpak in system {
+            upgrade(&flatpak, "system");
+        }
+
+        for flatpak in user {
+            upgrade(&flatpak, "user");
+        }
 
         pgrss.progress = 100;
-        pgrss.status = "Finished!".to_string();
+        pgrss.stdout = None;
+        pgrss.stderr = None;
+
+        pgrss.status = "Upgrade completed!".to_string();
         let _ = tx.send(pgrss.clone());
-        std::thread::sleep(std::time::Duration::from_millis(1000));
 
         true
     }
@@ -116,13 +95,34 @@ pub fn create_plugin() -> *mut dyn Plugin {
     Box::into_raw(Box::new(Flatpak))
 }
 
-fn list_updates() -> Vec<String> {
+fn list_updates(system: bool) -> Vec<String> {
     let mut updates = Vec::new();
     // Add logic to list updates here
     // `flatpak remote-ls --updates` may do it, but I can't test b/c my flatpaks are all updated
+    //
+    // flatpak remote-ls --updates --columns=application
+    // Application ID
+    // be.alexandervanhee.gradia
+    // md.obsidian.Obsidian
+    // org.flatpak.Builder
+    // org.gnome.Loupe
+    let mut flag = "--system";
+    if !system {
+        flag = "--user";
+    }
+    let (stdout, _stderr, success) =
+        execute(format!("flatpak remote-ls --updates --columns=application {}", flag).as_str());
+    if success != 0 {
+        return updates;
+    }
+
+    for line in stdout.lines().skip(1) {
+        updates.push(line.to_string());
+    }
+
     updates
 }
 
-fn upgrade(name: &str) -> (String, String, i32) {
-    execute(format!("flatpak update {}", name).as_str())
+fn upgrade_flatpak(name: &str) -> (String, String, i32) {
+    execute(format!("flatpak update --noninteractive -y {}", name).as_str())
 }

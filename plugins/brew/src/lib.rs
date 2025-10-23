@@ -23,7 +23,11 @@ pub struct Formulae {
     pub name: String,
     pub installed_versions: Vec<String>,
     pub current_version: String,
+
+    #[serde(default)]
     pub pinned: bool,
+
+    #[serde(default)]
     pub pinned_version: Option<String>,
 }
 
@@ -121,8 +125,9 @@ impl Plugin for Brew {
         // calculate the total progress based on the number of outdated formulae and casks
         let total_progress = outdated.formulae.len() + outdated.casks.len();
 
+        println!("total_progress: {}", total_progress);
         // Figure out how much each step should progress, minus the first two hard-coded steps
-        let step_progress = 100 / total_progress - (2 * total_progress);
+        let step_progress = 100 / total_progress;
 
         // Upgrade each formulae
         for formulae in outdated.formulae {
@@ -139,7 +144,7 @@ impl Plugin for Brew {
                 // Continue updating
             }
 
-            pgrss.progress = step_progress as u32;
+            pgrss.progress += step_progress as u32;
             pgrss.stdout = Some(stdout.clone());
             if !stderr.is_empty() {
                 pgrss.stderr = Some(stderr.clone());
@@ -166,7 +171,7 @@ impl Plugin for Brew {
             if !stderr.is_empty() {
                 pgrss.stderr = Some(stderr.clone());
             }
-            pgrss.progress = step_progress as u32;
+            pgrss.progress += step_progress as u32;
             let _ = tx.send(pgrss.clone());
         }
 
@@ -200,10 +205,10 @@ fn update() -> (String, String, i32) {
 
 fn upgrade_formulae(formula: &str) -> (String, String, i32) {
     // run a `brew upgrade <formula> --dry-run`
-    execute(&format!("brew upgrade {} --dry-run", formula))
+    execute(&format!("brew upgrade {}", formula))
 }
 
 fn upgrade_cask(cask: &str) -> (String, String, i32) {
     // run a `brew upgrade --cask <formula> --dry-run`
-    execute(&format!("brew upgrade --cask {} --dry-run", cask))
+    execute(&format!("brew upgrade --cask {}", cask))
 }
