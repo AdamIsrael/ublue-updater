@@ -126,53 +126,55 @@ impl Plugin for Brew {
         let total_progress = outdated.formulae.len() + outdated.casks.len();
 
         println!("total_progress: {}", total_progress);
-        // Figure out how much each step should progress, minus the first two hard-coded steps
-        let step_progress = 100 / total_progress;
+        if total_progress > 0 {
+            // Figure out how much each step should progress, minus the first two hard-coded steps
+            let step_progress = 100 / total_progress;
 
-        // Upgrade each formulae
-        for formulae in outdated.formulae {
-            pgrss.status = format!("Upgrading formulae {}...", formulae.name);
-            pgrss.stdout = None;
-            pgrss.stderr = None;
-            let _ = tx.send(pgrss.clone());
-
-            (stdout, stderr, success) = upgrade_formulae(&formulae.name);
-            if success != 0 {
-                pgrss.status = format!("Failed to upgrade formulae {}", formulae.name);
-                pgrss.stderr = Some(stderr.clone());
+            // Upgrade each formulae
+            for formulae in outdated.formulae {
+                pgrss.status = format!("Upgrading formulae {}...", formulae.name);
+                pgrss.stdout = None;
+                pgrss.stderr = None;
                 let _ = tx.send(pgrss.clone());
-                // Continue updating
-            }
 
-            pgrss.progress += step_progress as u32;
-            pgrss.stdout = Some(stdout.clone());
-            if !stderr.is_empty() {
-                pgrss.stderr = Some(stderr.clone());
-            }
-            let _ = tx.send(pgrss.clone());
-        }
+                (stdout, stderr, success) = upgrade_formulae(&formulae.name);
+                if success != 0 {
+                    pgrss.status = format!("Failed to upgrade formulae {}", formulae.name);
+                    pgrss.stderr = Some(stderr.clone());
+                    let _ = tx.send(pgrss.clone());
+                    // Continue updating
+                }
 
-        // Upgrade each cask
-        for cask in outdated.casks {
-            pgrss.status = format!("Upgrading cask {}...", cask.name);
-            pgrss.stdout = None;
-            pgrss.stderr = None;
-            let _ = tx.send(pgrss.clone());
-
-            (stdout, stderr, success) = upgrade_cask(&cask.name);
-            if success != 0 {
-                pgrss.status = format!("Failed to upgrade cask {}", cask.name);
-                pgrss.stderr = Some(stderr.clone());
+                pgrss.progress += step_progress as u32;
+                pgrss.stdout = Some(stdout.clone());
+                if !stderr.is_empty() {
+                    pgrss.stderr = Some(stderr.clone());
+                }
                 let _ = tx.send(pgrss.clone());
-                // Continue updating
             }
 
-            pgrss.stdout = Some(stdout.clone());
-            if !stderr.is_empty() {
-                pgrss.stderr = Some(stderr.clone());
+            // Upgrade each cask
+            for cask in outdated.casks {
+                pgrss.status = format!("Upgrading cask {}...", cask.name);
+                pgrss.stdout = None;
+                pgrss.stderr = None;
+                let _ = tx.send(pgrss.clone());
+
+                (stdout, stderr, success) = upgrade_cask(&cask.name);
+                if success != 0 {
+                    pgrss.status = format!("Failed to upgrade cask {}", cask.name);
+                    pgrss.stderr = Some(stderr.clone());
+                    let _ = tx.send(pgrss.clone());
+                    // Continue updating
+                }
+
+                pgrss.stdout = Some(stdout.clone());
+                if !stderr.is_empty() {
+                    pgrss.stderr = Some(stderr.clone());
+                }
+                pgrss.progress += step_progress as u32;
+                let _ = tx.send(pgrss.clone());
             }
-            pgrss.progress += step_progress as u32;
-            let _ = tx.send(pgrss.clone());
         }
 
         // Done!
