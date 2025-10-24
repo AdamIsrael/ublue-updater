@@ -31,6 +31,7 @@ pub fn get_plugin_progress_bar() -> ProgressBar {
         .margin_bottom(3)
         .margin_start(12)
         .margin_end(12)
+        .pulse_step(0.0)
         // .pulse_step(25.0)
         .show_text(true)
         .text("")

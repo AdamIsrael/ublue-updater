@@ -28,7 +28,7 @@ pub struct UupdProgress {
     pub total: u32,
 
     #[serde(default)]
-    pub step_progress: u32,
+    pub step_progress: f32,
 
     #[serde(default)]
     pub overall: u32,
@@ -109,7 +109,16 @@ impl Plugin for Uupd {
 
                 // Update renovatio with our current progress
                 let mut pgrss = PluginProgress::new(self.name());
-                pgrss.progress = p.previous_overall;
+                pgrss.pulse = false;
+
+                // uupd will give us a more detailed step_progress *sometimes*, like when it's downloading
+                // the image, otherwise it'll be 0. We'll use step if we have it, but fall back to the previous overall.
+                if p.step_progress > 0.0 {
+                    pgrss.progress = p.step_progress as u32;
+                } else {
+                    pgrss.progress = p.previous_overall;
+                }
+                pgrss.status = msg;
 
                 // Send the progress back to the main thread and update the UI
                 let _ = tx.send(pgrss);

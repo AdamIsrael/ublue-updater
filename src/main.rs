@@ -211,6 +211,7 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
                 ppbar_clone.set_text(Some(&progress.status));
 
                 if progress.pulse {
+                    println!("Pulsing plugin progress bar");
                     ppbar_clone.set_pulse_step(0.25);
                     ppbar_clone.pulse();
                 } else {
@@ -236,10 +237,6 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
                         ppbar_clone.set_fraction(1.0);
 
                         tpbar_clone.set_text(Some("Updates complete!"));
-                        // if progress.pulse {
-                        //     ppbar_clone.set_pulse_step(1.0);
-                        //     ppbar_clone.pulse();
-                        // }
 
                         tpbar_clone.set_fraction(1.0);
 
