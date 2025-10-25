@@ -2,7 +2,6 @@ use renovatio::{Plugin, PluginProgress};
 
 use serde::{Deserialize, Serialize};
 
-use flume::Sender;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::process::{Command, Stdio};

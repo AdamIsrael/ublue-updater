@@ -216,7 +216,11 @@ impl Plugin for Bootc {
                 let _ = tx.send(pgrss.clone());
 
                 let (stdout, stderr, rc) = upgrade();
-                println!("upgrade stdout: {}", stdout);
+                if rc == 0 {
+                    pgrss.stdout = Some(stdout.clone());
+                } else {
+                    pgrss.stderr = Some(stderr.clone());
+                }
 
                 // When the upgrade is complete, signal that we're done.
                 pgrss.progress = 100;
@@ -247,9 +251,7 @@ pub fn create_plugin() -> *mut dyn Plugin {
 
 fn get_status() -> Option<Root> {
     // execute `bootc status --json`
-    let (stdout, stderr, rc) = execute("pkexec bootc status --json");
-    // println!("stdout: {}", stdout);
-    // println!("stderr: {}", stderr);
+    let (stdout, _stderr, rc) = execute("pkexec bootc status --json");
 
     if rc != 0 {
         return None;
