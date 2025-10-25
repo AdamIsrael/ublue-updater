@@ -64,7 +64,7 @@ impl Plugin for Flatpak {
             let _ = tx.send(pgrss_clone.clone());
         };
 
-        pgrss.status = format!("Upgrading flatpaks...");
+        pgrss.status = "Upgrading flatpaks...".to_string();
         pgrss.progress = 0;
         pgrss.stdout = None;
         pgrss.stderr = None;
