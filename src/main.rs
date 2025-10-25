@@ -97,7 +97,6 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
         tpbar.set_visible(true);
 
         let tx_worker = tx_clone.clone();
-        // drop(tx_worker);
 
         // let update_clone = update.clone();
         thread::spawn(move || {
