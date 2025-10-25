@@ -25,9 +25,7 @@ fn main() -> glib::ExitCode {
         .application_id(config::APP_ID)
         .build();
 
-    // Load plugins at startup: we'll need them for the update process and preferences dialog
-    // trying to store the plugin itself in a vector, stuffed in a Vec<Box<dyn Plugin>>,
-    // into application.data, but I segfault trying to access the plugin data.
+    // Load plugins at startup, in a Vec<PluginMetadata>
     let mut plugins: Vec<PluginMetadata> = Vec::new();
     unsafe {
         let plugin_libraries = utils::find_plugins();
@@ -43,11 +41,6 @@ fn main() -> glib::ExitCode {
                 }
             }
         }
-
-        // app.set_data::<u32>("counter", Box::new(42));
-        // println!("{:?}", plugins);
-        // application.set_data::<Vec<PluginMetadata>>("plugins", plugins);
-        // application.data::<Vec<PluginMetadata>>("plugins")
     }
 
     application.connect_activate(move |app| {
@@ -98,10 +91,7 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
 
         let tx_worker = tx_clone.clone();
 
-        // let update_clone = update.clone();
         thread::spawn(move || {
-            // std::thread::sleep(std::time::Duration::from_millis(5000));
-
             let settings = gio::Settings::new(config::APP_ID);
 
             // Load the enabled plugin(s)
@@ -109,8 +99,6 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
 
             for plugin in plugins {
                 let tx_plugin = tx_worker.clone();
-                // let tx_plugin = tx_worker.clone();
-                // let (tx_plugin, _rx): (flume::Sender<Progress>, Receiver<Progress>) = unbounded();
 
                 unsafe {
                     // Load the shared library
@@ -130,14 +118,8 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
                             } else {
                                 println!("Update failed");
                             }
-
-                            // drop(tx_plugin);
-
-                            // std::thread::sleep(std::time::Duration::from_millis(5000));
                         }
                     }
-
-                    // wait for the plugin to finish
                 };
             }
         });
@@ -157,8 +139,6 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
     actions::set_preferences(app, &window, plugins.clone());
     actions::set_quit(app);
 
-    // drop(tx);
-
     // Present window
     window.present();
 
@@ -169,11 +149,6 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
 
     // This is called each time GTK is idle (i.e., not processing events).
     // It will run as often as possible but never blocks the main loop.
-    // let mut total_progress: u32 = 0;
-    // let mut total_status: String = String::new();
-
-    // let total_progress_clone = total_progress.clone();
-    //
     let settings = gio::Settings::new(config::APP_ID);
     let mut plugin_index = 1;
 
@@ -219,11 +194,6 @@ fn build_ui(app: &adw::Application, plugins: Vec<PluginMetadata>) -> adw::Applic
                 }
 
                 // TODO: Append stdout and stderr to a `TextView` in the UI
-
-                // TODO: Calculate the total progress based on plugin(s) completed
-                // ui.total_progress_bar.set_text(Some("Running uupd..."));
-                // ui.total_progress_bar
-                //     .set_fraction(p.progress as f64 / 100.0);
 
                 if progress.progress == 100 {
                     apply_clone.set_sensitive(true);

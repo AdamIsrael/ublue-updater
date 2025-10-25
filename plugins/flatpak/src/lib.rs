@@ -97,15 +97,6 @@ pub fn create_plugin() -> *mut dyn Plugin {
 
 fn list_updates(system: bool) -> Vec<String> {
     let mut updates = Vec::new();
-    // Add logic to list updates here
-    // `flatpak remote-ls --updates` may do it, but I can't test b/c my flatpaks are all updated
-    //
-    // flatpak remote-ls --updates --columns=application
-    // Application ID
-    // be.alexandervanhee.gradia
-    // md.obsidian.Obsidian
-    // org.flatpak.Builder
-    // org.gnome.Loupe
     let mut flag = "--system";
     if !system {
         flag = "--user";

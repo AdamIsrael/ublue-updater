@@ -192,23 +192,17 @@ impl Plugin for Bootc {
         // Check the status to see if there's an update available
         if let Some(status) = get_status() {
             // Check to see if there's an update
-            // println!("Status: {:?}", status);
-
-            // May need to flip this logic. If there is a cached update, it means it's been downloaded
-            // and we need to reboot. If it's none, then we should run the upgrade to determine if there's an update
-            //
             if status.status.booted.cached_update.is_some() {
                 // There is an update cached, so we need to reboot
 
                 let new_version = status.status.booted.cached_update.unwrap().version;
-                println!("New version: {}", new_version);
 
                 // There's a cached update, so a) update the progress and b) run the upgrade
                 pgrss.status = format!("OS upgrade to {} pending reboot", new_version);
                 pgrss.progress = 100;
                 pgrss.pulse = false;
                 pgrss.reboot_required = true;
-                // pgrss.status = "OS upgrade pending reboot!".to_string();
+
                 let _ = tx.send(pgrss.clone());
             } else {
                 // There's a cached update, so a) update the progress and b) run the upgrade
