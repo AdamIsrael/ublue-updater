@@ -1,6 +1,6 @@
 # bootc plugin
 
-Running the bootc plugin will promp the user for their password twice by default. This is due to the policy kit configuration.
+Running the bootc plugin will prompt the user for their password twice by default. This is due to the policy kit configuration.
 
 Create a new file: `/etc/polkit-1/rules.d/50-pkexec.rules` with the following contents:
 
